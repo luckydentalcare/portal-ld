@@ -7,6 +7,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "test:cloudinary": "ts-node-dev --transpile-only src/scripts/test-cloudinary.ts",
     "audit:db": "ts-node-dev --transpile-only src/scripts/audit-data-integrity.ts",
+    "test:sms": "ts-node-dev --transpile-only src/scripts/test-sms-integration.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",

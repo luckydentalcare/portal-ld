@@ -4,7 +4,7 @@ import { authenticateAdmin } from '../middleware/auth.middleware';
 
 const router = Router();
 
-router.use(authenticateAdmin);
+router.use('/packages', authenticateAdmin);
 
 router.get('/packages', listPackages);
 router.post('/packages', createPackage);

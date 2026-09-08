@@ -14,6 +14,7 @@
     "start:web": "npm run start --workspace=apps/web",
     "start": "npm run start:api",
     "typecheck": "npm run typecheck --workspace=packages/shared && npm run typecheck --workspace=apps/api && npm run typecheck --workspace=apps/web",
+    "test:sms": "npm run test:sms --workspace=apps/api",
     "lint": "npm run lint --workspace=apps/api && npm run lint --workspace=apps/web"
   },
   "devDependencies": {

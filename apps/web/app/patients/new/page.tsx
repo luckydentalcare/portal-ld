@@ -18,7 +18,8 @@ import {
   Save,
   Receipt,
   Eye,
-  Info
+  Info,
+  ListPlus
 } from 'lucide-react';
 import DashboardLayout from '@/app/dashboard/layout';
 import { GlassCard } from '@/components/ui/glass-card';
@@ -66,6 +67,30 @@ export default function NewPatientPage() {
   // Submission State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Dynamic Custom Fields State
+  const [customFieldDefs, setCustomFieldDefs] = useState<any[]>([]);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, any>>({});
+  const [isLoadingFields, setIsLoadingFields] = useState(false);
+
+  // Fetch Active Custom Field Definitions
+  useEffect(() => {
+    async function loadFields() {
+      setIsLoadingFields(true);
+      try {
+        const res = await apiFetch<any[]>('/custom-fields');
+        if (res.success && Array.isArray(res.data)) {
+          const activeDefs = res.data.filter((f: any) => f.active !== false);
+          setCustomFieldDefs(activeDefs);
+        }
+      } catch {
+        // Non-blocking error
+      } finally {
+        setIsLoadingFields(false);
+      }
+    }
+    loadFields();
+  }, []);
 
   // Debounced Duplicate Phone Check
   useEffect(() => {
@@ -148,6 +173,17 @@ export default function NewPatientPage() {
     if (!age || isNaN(Number(age)) || Number(age) < 0) newErrors.age = 'Please enter a valid age.';
     if (!phone.trim()) newErrors.phone = 'Phone number is required.';
     if (!patientProblem.trim()) newErrors.patientProblem = 'Primary medical problem/complaint is required.';
+
+    // Validate required custom fields
+    for (const def of customFieldDefs) {
+      if (def.required) {
+        const val = customFieldValues[def.key];
+        if (val === undefined || val === null || val === '') {
+          newErrors[`cf_${def.key}`] = `${def.name} is required.`;
+        }
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -161,6 +197,15 @@ export default function NewPatientPage() {
       showToast('Please complete all required fields properly.', 'error');
       return;
     }
+
+    // Build customFields array for backend
+    const customFieldsPayload = customFieldDefs
+      .map((def) => ({
+        fieldId: def._id || def.id,
+        key: def.key,
+        value: customFieldValues[def.key] !== undefined ? customFieldValues[def.key] : ''
+      }))
+      .filter((cf) => cf.value !== '' && cf.value !== undefined);
 
     submittingRef.current = true;
     setIsSubmitting(true);
@@ -176,7 +221,8 @@ export default function NewPatientPage() {
           village: village.trim() || undefined,
           district: district.trim() || undefined,
           patientProblem: patientProblem.trim(),
-          profileImage: profileImage || undefined
+          profileImage: profileImage || undefined,
+          customFields: customFieldsPayload.length > 0 ? customFieldsPayload : undefined
         })
       });
 
@@ -444,6 +490,107 @@ export default function NewPatientPage() {
             )}
           </div>
         </GlassCard>
+
+        {/* Section 5: Additional Custom Fields (Dynamic from Settings) */}
+        {customFieldDefs.length > 0 && (
+          <GlassCard className="space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <ListPlus className="w-4 h-4 text-red-400" />
+                <h3 className="text-xs font-bold text-gray-100 uppercase tracking-wider">
+                  5. Additional Clinical & Demographic Information
+                </h3>
+              </div>
+              <span className="text-[11px] text-gray-400">Customized fields</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {customFieldDefs.map((def) => {
+                const fieldError = errors[`cf_${def.key}`];
+                const value = customFieldValues[def.key] ?? '';
+
+                if (def.type === 'select') {
+                  return (
+                    <div key={def.key} className="space-y-1.5">
+                      <label className="block text-xs font-medium text-gray-300">
+                        {def.name} {def.required && <span className="text-red-400">*</span>}
+                      </label>
+                      <select
+                        value={value}
+                        onChange={(e) => setCustomFieldValues({ ...customFieldValues, [def.key]: e.target.value })}
+                        className={`w-full glass-input rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-gray-100 bg-[#0e0e0e] border ${
+                          fieldError ? 'border-red-500' : 'border-white/10'
+                        }`}
+                      >
+                        <option value="" className="bg-[#121212] text-gray-400">
+                          -- Select {def.name} --
+                        </option>
+                        {(def.options || []).map((opt: string) => (
+                          <option key={opt} value={opt} className="bg-[#121212] text-gray-200">
+                            {opt}
+                          </option>
+                        ))}
+                      </select>
+                      {fieldError && <p className="text-xs text-red-400 font-medium">{fieldError}</p>}
+                    </div>
+                  );
+                }
+
+                if (def.type === 'checkbox' || def.type === 'boolean') {
+                  return (
+                    <div key={def.key} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/10 sm:col-span-2">
+                      <input
+                        type="checkbox"
+                        id={`cf_${def.key}`}
+                        checked={Boolean(value)}
+                        onChange={(e) => setCustomFieldValues({ ...customFieldValues, [def.key]: e.target.checked })}
+                        className="w-4 h-4 rounded border-white/20 bg-black/40 text-red-600 focus:ring-red-500"
+                      />
+                      <label htmlFor={`cf_${def.key}`} className="text-xs font-medium text-gray-200 cursor-pointer">
+                        {def.name} {def.required && <span className="text-red-400">*</span>}
+                      </label>
+                      {fieldError && <p className="text-xs text-red-400 font-medium ml-auto">{fieldError}</p>}
+                    </div>
+                  );
+                }
+
+                if (def.type === 'textarea') {
+                  return (
+                    <div key={def.key} className="sm:col-span-2 space-y-1.5">
+                      <label className="block text-xs font-medium text-gray-300">
+                        {def.name} {def.required && <span className="text-red-400">*</span>}
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={value}
+                        onChange={(e) => setCustomFieldValues({ ...customFieldValues, [def.key]: e.target.value })}
+                        placeholder={`Enter ${def.name.toLowerCase()}...`}
+                        className={`w-full glass-input rounded-xl p-3 text-xs sm:text-sm text-gray-100 placeholder:text-gray-500 resize-none ${
+                          fieldError ? 'border-red-500' : 'border-white/10'
+                        }`}
+                      />
+                      {fieldError && <p className="text-xs text-red-400 font-medium">{fieldError}</p>}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={def.key}>
+                    <Input
+                      label={`${def.name}${def.required ? ' *' : ''}`}
+                      type={def.type === 'number' ? 'number' : def.type === 'date' ? 'date' : def.type === 'email' ? 'email' : 'text'}
+                      placeholder={`Enter ${def.name.toLowerCase()}`}
+                      value={value}
+                      onChange={(e) => setCustomFieldValues({ ...customFieldValues, [def.key]: e.target.value })}
+                      error={fieldError}
+                      required={def.required}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </GlassCard>
+        )}
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-2">

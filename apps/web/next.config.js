@@ -29,6 +29,14 @@ const nextConfig = {
       {
         source: '/favicon.ico',
         destination: '/icon.svg'
+      },
+      {
+        source: '/staff',
+        destination: '/stuffs'
+      },
+      {
+        source: '/staff/:path*',
+        destination: '/stuffs/:path*'
       }
     ];
   }

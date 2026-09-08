@@ -22,7 +22,7 @@ const upload = multer({
 const router = Router();
 
 // All patient endpoints require authentication
-router.use(authenticateAdmin);
+router.use('/patients', authenticateAdmin);
 
 router.get('/patients', listPatients);
 router.post('/patients', createPatient);

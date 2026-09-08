@@ -9,9 +9,12 @@ import {
   Calendar, 
   Package, 
   Receipt, 
+  MessageSquare,
   Settings, 
   LogOut, 
-  Activity 
+  Activity,
+  Wrench,
+  Briefcase
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
@@ -20,8 +23,11 @@ const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Patients', href: '/patients', icon: Users },
   { name: 'Appointments', href: '/appointments', icon: Calendar },
-  { name: 'Packages', href: '/packages', icon: Package },
   { name: 'Receipts', href: '/receipts', icon: Receipt },
+  { name: 'Accessories', href: '/accessories', icon: Wrench },
+  { name: 'Staff & Payroll', href: '/stuffs', icon: Briefcase },
+  { name: 'Packages', href: '/packages', icon: Package },
+  { name: 'SMS', href: '/smsinfo', icon: MessageSquare },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 

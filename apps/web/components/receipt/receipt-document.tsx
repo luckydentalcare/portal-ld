@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Printer, 
   Calendar, 
@@ -12,10 +12,12 @@ import {
   AlertCircle,
   CreditCard,
   Edit3,
-  ShieldCheck
+  ShieldCheck,
+  History
 } from 'lucide-react';
-import { Receipt, Appointment } from '@patient-portal/shared';
+import { Receipt, Appointment, ClinicSettings } from '@patient-portal/shared';
 import { Button } from '@/components/ui/button';
+import { apiFetch } from '@/lib/api/client';
 
 interface ReceiptDocumentProps {
   receipt: Receipt;
@@ -36,6 +38,29 @@ export function ReceiptDocument({
   isPublic = false,
   className = ''
 }: ReceiptDocumentProps) {
+  const [clinicSettings, setClinicSettings] = useState<ClinicSettings>({
+    clinicName: 'Luckydental',
+    tagline: 'Specialized Dental Care & Maxillofacial Surgery',
+    phone: '+880 1900-000000',
+    email: 'appointment@luckydental.com',
+    address: 'Dhaka, Bangladesh',
+    receiptFooter: 'Thank you for choosing Luckydental. Wishing you a healthy and bright smile!'
+  });
+
+  useEffect(() => {
+    async function loadClinicSettings() {
+      try {
+        const res = await apiFetch<ClinicSettings>('/settings/clinic');
+        if (res.success && res.data) {
+          setClinicSettings(res.data);
+        }
+      } catch {
+        // Fallback to default
+      }
+    }
+    loadClinicSettings();
+  }, []);
+
   const handlePrint = () => {
     if (onPrint) {
       onPrint();
@@ -75,8 +100,13 @@ export function ReceiptDocument({
     });
   };
 
-  const isFullyPaid = receipt.dueAmount === 0 && receipt.totalAmount > 0;
-  const isPartial = receipt.paidAmount > 0 && receipt.dueAmount > 0;
+  const isCancelled = receipt.status === 'cancelled';
+  const isFullyPaid = !isCancelled && (receipt.dueAmount === 0 || receipt.resultingDue === 0) && receipt.totalAmount > 0;
+  const isPartial = !isCancelled && receipt.paidAmount > 0 && (receipt.dueAmount > 0 || (receipt.resultingDue || 0) > 0);
+
+  const hasPreviousDue = Boolean(receipt.previousDueSnapshot && receipt.previousDueSnapshot > 0);
+  const totalPayable = receipt.totalPayable !== undefined ? receipt.totalPayable : (receipt.totalAmount + (receipt.previousDueSnapshot || 0));
+  const remainingDue = receipt.resultingDue !== undefined ? receipt.resultingDue : receipt.dueAmount;
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -84,9 +114,13 @@ export function ReceiptDocument({
       {showActions && (
         <div className="flex items-center justify-between no-print px-1">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-950/60 border border-red-800/40 text-[11px] font-bold text-red-400">
+            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-bold ${
+              isCancelled
+                ? 'bg-gray-800 text-gray-400 border-gray-700'
+                : 'bg-red-950/60 border-red-800/40 text-red-400'
+            }`}>
               <ShieldCheck className="w-3.5 h-3.5" />
-              Verified Official Receipt
+              {isCancelled ? 'Cancelled Invoice' : 'Verified Official Receipt'}
             </span>
             {receipt.version && receipt.version > 1 && (
               <span className="text-[10px] text-gray-400 font-mono">
@@ -96,24 +130,22 @@ export function ReceiptDocument({
           </div>
 
           <div className="flex items-center gap-2">
-            {onEdit && !isPublic && (
+            {onEdit && !isPublic && !isCancelled && (
               <Button
-                type="button"
                 variant="outline"
                 size="sm"
                 onClick={onEdit}
-                className="text-xs gap-1.5"
+                className="gap-1.5 text-xs border-red-800/40 text-red-400 hover:text-white"
               >
                 <Edit3 className="w-3.5 h-3.5" />
-                Edit Receipt
+                Edit Invoice
               </Button>
             )}
             <Button
-              type="button"
               variant="primary"
               size="sm"
               onClick={handlePrint}
-              className="text-xs gap-1.5 shadow-glow-red-sm"
+              className="gap-1.5 text-xs shadow-glow-red-sm"
             >
               <Printer className="w-3.5 h-3.5" />
               Print Receipt
@@ -136,15 +168,17 @@ export function ReceiptDocument({
               </div>
               <div>
                 <h1 className="text-xl font-black tracking-tight text-red-950 uppercase leading-none">
-                  Luckydental
+                  {clinicSettings.clinicName || 'Luckydental'}
                 </h1>
-                <p className="text-[11px] font-semibold text-gray-700 mt-0.5">
-                  Specialized Dental Care & Maxillofacial Surgery
-                </p>
+                {clinicSettings.tagline && (
+                  <p className="text-[11px] font-semibold text-gray-700 mt-0.5">
+                    {clinicSettings.tagline}
+                  </p>
+                )}
               </div>
             </div>
             <p className="text-[10px] text-gray-500 mt-2">
-              Dhaka, Bangladesh • Hotline: +880 1900-000000 • appointment@luckydental.com
+              {clinicSettings.address} • Hotline: {clinicSettings.phone} {clinicSettings.email && `• ${clinicSettings.email}`}
             </p>
           </div>
 
@@ -157,13 +191,21 @@ export function ReceiptDocument({
             </p>
             <div className="mt-1.5">
               <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                isFullyPaid
+                isCancelled
+                  ? 'bg-gray-200 text-gray-700 border border-gray-300'
+                  : isFullyPaid
                   ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                   : isPartial
                   ? 'bg-amber-100 text-amber-800 border border-amber-300'
                   : 'bg-red-100 text-red-800 border border-red-300'
               }`}>
-                {isFullyPaid ? 'PAYMENT COMPLETE' : isPartial ? 'PARTIAL PAYMENT' : 'PAYMENT DUE'}
+                {isCancelled
+                  ? 'CANCELLED'
+                  : isFullyPaid
+                  ? 'PAYMENT COMPLETE'
+                  : isPartial
+                  ? 'PARTIAL PAYMENT'
+                  : 'PAYMENT DUE'}
               </span>
             </div>
           </div>
@@ -292,22 +334,34 @@ export function ReceiptDocument({
             )}
           </div>
 
-          <div className="w-full sm:w-72 space-y-2 font-mono text-xs bg-gray-50 p-4 rounded-xl border border-gray-200">
+          <div className="w-full sm:w-80 space-y-2 font-mono text-xs bg-gray-50 p-4 rounded-xl border border-gray-200">
             <div className="flex justify-between text-gray-600">
-              <span>Subtotal:</span>
+              <span>Visit Subtotal:</span>
               <span className="font-bold text-gray-900">৳{receipt.subtotal?.toLocaleString('en-BD')}</span>
             </div>
 
             {receipt.discount > 0 && (
               <div className="flex justify-between text-emerald-700 font-semibold">
-                <span>Discount:</span>
+                <span>Discount ({receipt.discountType === 'percentage' ? '%' : '৳'}):</span>
                 <span>-৳{receipt.discount?.toLocaleString('en-BD')}</span>
               </div>
             )}
 
-            <div className="flex justify-between text-gray-900 font-black text-sm pt-2 border-t border-gray-200">
-              <span>Grand Total:</span>
-              <span className="text-red-950">৳{receipt.totalAmount?.toLocaleString('en-BD')}</span>
+            <div className="flex justify-between text-gray-900 font-bold border-t border-gray-200 pt-1.5">
+              <span>This Visit Charges:</span>
+              <span>৳{receipt.totalAmount?.toLocaleString('en-BD')}</span>
+            </div>
+
+            {hasPreviousDue && (
+              <div className="flex justify-between text-amber-800 font-semibold bg-amber-50 px-2 py-1 rounded border border-amber-200 text-[11px]">
+                <span>Previous Unpaid Due:</span>
+                <span>+৳{receipt.previousDueSnapshot?.toLocaleString('en-BD')}</span>
+              </div>
+            )}
+
+            <div className="flex justify-between text-gray-900 font-black text-sm pt-2 border-t border-gray-300">
+              <span>Total Payable:</span>
+              <span className="text-red-950">৳{totalPayable?.toLocaleString('en-BD')}</span>
             </div>
 
             <div className="flex justify-between text-emerald-800 font-semibold">
@@ -315,12 +369,46 @@ export function ReceiptDocument({
               <span>৳{receipt.paidAmount?.toLocaleString('en-BD')}</span>
             </div>
 
-            <div className="flex justify-between font-black text-sm pt-2 border-t border-gray-200 text-red-900">
-              <span>Due Balance:</span>
-              <span>৳{receipt.dueAmount?.toLocaleString('en-BD')}</span>
+            <div className="flex justify-between font-black text-sm pt-2 border-t border-gray-300 text-red-900">
+              <span>Remaining Balance Due:</span>
+              <span>৳{remainingDue?.toLocaleString('en-BD')}</span>
             </div>
           </div>
         </div>
+
+        {/* Payment History Table (If multiple payments made against this invoice) */}
+        {receipt.payments && receipt.payments.length > 0 && (
+          <div className="space-y-2 pt-2 border-t border-gray-200">
+            <div className="flex items-center gap-1.5 text-gray-700 font-bold text-[10px] uppercase">
+              <History className="w-3 h-3 text-red-700" />
+              <span>Recorded Payment Transactions ({receipt.payments.length})</span>
+            </div>
+            <div className="overflow-x-auto rounded-lg border border-gray-200">
+              <table className="w-full text-left text-[11px] font-mono">
+                <thead className="bg-gray-100 text-gray-600 font-semibold border-b border-gray-200 text-[10px]">
+                  <tr>
+                    <th className="py-1.5 px-3">Date</th>
+                    <th className="py-1.5 px-3 text-right">Amount</th>
+                    <th className="py-1.5 px-3">Method</th>
+                    <th className="py-1.5 px-3">Recorded By</th>
+                    <th className="py-1.5 px-3">Notes</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {receipt.payments.map((p, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50/50">
+                      <td className="py-1.5 px-3 text-gray-600">{p.paymentDate || new Date(p.createdAt).toLocaleDateString('en-GB')}</td>
+                      <td className="py-1.5 px-3 text-right font-bold text-emerald-700">৳{p.amount?.toLocaleString('en-BD')}</td>
+                      <td className="py-1.5 px-3 uppercase text-gray-700">{p.paymentMethod}</td>
+                      <td className="py-1.5 px-3 text-gray-600">{p.recordedBy || 'Admin'}</td>
+                      <td className="py-1.5 px-3 text-gray-500 italic truncate max-w-[150px]">{p.notes || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Footer & Signature Section */}
         <div className="pt-6 border-t border-gray-200 space-y-6">
@@ -333,13 +421,13 @@ export function ReceiptDocument({
             <div className="space-y-1">
               <div className="w-44 border-t border-gray-900 mx-auto" />
               <p className="text-[10px] font-bold text-red-950 uppercase">Authorized Signature & Seal</p>
-              <p className="text-[9px] text-gray-500">Luckydental Dental Clinic</p>
+              <p className="text-[9px] text-gray-500">{clinicSettings.clinicName || 'Luckydental'}</p>
             </div>
           </div>
 
           <div className="text-[10px] text-gray-500 text-center space-y-0.5 pt-2 border-t border-gray-100">
             <p className="font-semibold text-gray-700">
-              Thank you for trusting Luckydental for your oral healthcare and maxillofacial needs.
+              {clinicSettings.receiptFooter || 'Thank you for choosing Luckydental. Wishing you a healthy and bright smile!'}
             </p>
             <p>Please bring this official invoice along with any prescribed radiographs on your follow-up appointment.</p>
           </div>

@@ -4,7 +4,7 @@ import { authenticateAdmin } from '../middleware/auth.middleware';
 
 const router = Router();
 
-router.use(authenticateAdmin);
+router.use('/dashboard', authenticateAdmin);
 
 router.get('/dashboard/stats', getDashboardStats);
 

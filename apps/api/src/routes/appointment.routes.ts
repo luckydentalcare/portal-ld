@@ -12,7 +12,7 @@ import { authenticateAdmin } from '../middleware/auth.middleware';
 const router = Router();
 
 // All appointment routes require authentication
-router.use(authenticateAdmin);
+router.use('/appointments', authenticateAdmin);
 
 router.get('/appointments', listAppointments);
 router.post('/appointments', createAppointment);

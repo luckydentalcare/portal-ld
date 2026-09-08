@@ -11,6 +11,11 @@ import appointmentRoutes from './routes/appointment.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import customFieldRoutes from './routes/custom-field.routes';
 import publicRoutes from './routes/public.routes';
+import smsRoutes from './routes/sms.routes';
+import clinicSettingsRoutes from './routes/clinic-settings.routes';
+import accessoryRoutes from './routes/accessory.routes';
+import staffRoutes from './routes/staff.routes';
+import externalSmsRoutes from './routes/external-sms.routes';
 import { errorHandler } from './middleware/error.middleware';
 
 const app = express();
@@ -49,7 +54,7 @@ app.use(
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key']
   })
 );
 
@@ -59,6 +64,10 @@ app.use(cookieParser());
 
 // Direct Health Route (e.g. http://localhost:5000/health)
 app.use('/health', healthRoutes);
+
+// Public External SMS API routes
+app.use('/message/api', externalSmsRoutes);
+app.use('/api/message/send', externalSmsRoutes);
 
 // Root route
 app.get('/', (req, res) => {
@@ -82,6 +91,11 @@ app.use('/api', receiptRoutes);
 app.use('/api', appointmentRoutes);
 app.use('/api', dashboardRoutes);
 app.use('/api', customFieldRoutes);
+app.use('/api', smsRoutes);
+app.use('/api', clinicSettingsRoutes);
+app.use('/api', accessoryRoutes);
+app.use('/api/stuffs', staffRoutes);
+app.use('/api/staff', staffRoutes);
 
 // Error Handler
 app.use(errorHandler);

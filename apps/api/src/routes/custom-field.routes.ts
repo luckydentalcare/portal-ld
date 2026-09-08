@@ -9,7 +9,7 @@ import { authenticateAdmin } from '../middleware/auth.middleware';
 
 const router = Router();
 
-router.use(authenticateAdmin);
+router.use('/custom-fields', authenticateAdmin);
 
 router.get('/custom-fields', listCustomFields);
 router.post('/custom-fields', createCustomField);

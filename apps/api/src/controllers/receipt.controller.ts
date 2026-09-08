@@ -13,8 +13,8 @@ export const createReceipt = async (req: Request, res: Response) => {
       paymentMethod, 
       appointmentDate,
       appointmentTime,
-      notes, 
-      isNewReceipt 
+      notes,
+      previousDueSnapshot
     } = req.body;
 
     if (!patientNumber || !items || !Array.isArray(items) || items.length === 0) {
@@ -34,19 +34,19 @@ export const createReceipt = async (req: Request, res: Response) => {
       appointmentDate,
       appointmentTime,
       notes,
-      isNewReceipt: Boolean(isNewReceipt)
+      previousDueSnapshot: previousDueSnapshot !== undefined ? Number(previousDueSnapshot) : undefined
     });
 
     return res.status(201).json({
       success: true,
-      message: `Receipt #${receipt.receiptNumber} saved successfully`,
+      message: `Invoice #${receipt.receiptNumber} created successfully`,
       data: receipt
     });
   } catch (error: any) {
-    logger.error('Error creating/updating receipt', { error });
+    logger.error('Error creating invoice', { error });
     return res.status(400).json({
       success: false,
-      message: error.message || 'Failed to process receipt'
+      message: error.message || 'Failed to create invoice'
     });
   }
 };
@@ -54,38 +54,93 @@ export const createReceipt = async (req: Request, res: Response) => {
 export const updateReceipt = async (req: Request, res: Response) => {
   try {
     const { identifier } = req.params;
-    const existing = await receiptService.getReceiptByNumberOrId(identifier);
-
-    if (!existing) {
-      return res.status(404).json({
-        success: false,
-        message: `Receipt #${identifier} not found.`
-      });
-    }
-
-    const receipt = await receiptService.createReceipt({
-      patientNumber: existing.patientNumber,
-      items: req.body.items || existing.items,
-      discount: req.body.discount !== undefined ? Number(req.body.discount) : existing.discount,
-      discountType: req.body.discountType || existing.discountType,
-      paidAmount: req.body.paidAmount !== undefined ? Number(req.body.paidAmount) : existing.paidAmount,
-      paymentMethod: req.body.paymentMethod || existing.paymentMethod,
-      appointmentDate: req.body.appointmentDate !== undefined ? req.body.appointmentDate : existing.appointmentDate,
-      appointmentTime: req.body.appointmentTime !== undefined ? req.body.appointmentTime : existing.appointmentTime,
-      notes: req.body.notes !== undefined ? req.body.notes : existing.notes,
-      isNewReceipt: false
-    });
+    const receipt = await receiptService.updateReceipt(identifier, req.body);
 
     return res.status(200).json({
       success: true,
-      message: `Receipt #${receipt.receiptNumber} updated successfully`,
+      message: `Invoice #${receipt.receiptNumber} updated successfully`,
       data: receipt
     });
   } catch (error: any) {
     logger.error('Error updating receipt', { error });
     return res.status(400).json({
       success: false,
-      message: error.message || 'Failed to update receipt'
+      message: error.message || 'Failed to update invoice'
+    });
+  }
+};
+
+export const cancelReceipt = async (req: Request, res: Response) => {
+  try {
+    const { identifier } = req.params;
+    await receiptService.cancelReceipt(identifier);
+
+    return res.status(200).json({
+      success: true,
+      message: `Invoice #${identifier} cancelled successfully`
+    });
+  } catch (error: any) {
+    logger.error('Error cancelling receipt', { error });
+    return res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to cancel invoice'
+    });
+  }
+};
+
+export const recordInvoicePayment = async (req: Request, res: Response) => {
+  try {
+    const { patientNumber } = req.params;
+    const { receiptNumber, amount, paymentMethod, notes } = req.body;
+
+    if (!patientNumber || !amount || Number(amount) <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Patient number and positive payment amount are required.'
+      });
+    }
+
+    const adminName = (req as any).user?.name || 'Admin';
+    const result = await receiptService.recordInvoicePayment(Number(patientNumber), {
+      receiptNumber,
+      amount: Number(amount),
+      paymentMethod,
+      notes,
+      recordedBy: adminName
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: `Payment of ৳${amount} recorded successfully`,
+      data: result
+    });
+  } catch (error: any) {
+    logger.error('Error recording payment', { error });
+    return res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to record payment'
+    });
+  }
+};
+
+export const getPatientBalance = async (req: Request, res: Response) => {
+  try {
+    const { patientIdentifier } = req.params;
+    const num = Number(String(patientIdentifier).replace('#', ''));
+    if (isNaN(num)) {
+      return res.status(400).json({ success: false, message: 'Invalid patient number' });
+    }
+
+    const balance = await receiptService.getPatientAccountBalance(num);
+    return res.status(200).json({
+      success: true,
+      data: balance
+    });
+  } catch (error: any) {
+    logger.error('Error getting patient balance', { error });
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve patient account balance'
     });
   }
 };

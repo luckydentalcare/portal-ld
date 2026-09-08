@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import React, { useState, useEffect, useRef, useMemo, Suspense } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { 
   Receipt as ReceiptIcon, 
@@ -10,24 +10,17 @@ import {
   Trash2, 
   Printer, 
   CreditCard, 
-  Wallet, 
-  CheckCircle, 
-  AlertCircle, 
-  Sparkles, 
-  FileText, 
-  User, 
-  Phone, 
-  Calendar as CalendarIcon,
-  Clock,
-  DollarSign,
-  Package as PackageIcon,
-  Save,
-  Check,
-  RotateCcw,
-  Eye,
-  Edit3,
-  Loader2,
-  AlertTriangle
+  Clock, 
+  Package as PackageIcon, 
+  Save, 
+  RotateCcw, 
+  Eye, 
+  Loader2, 
+  AlertTriangle,
+  User,
+  Phone,
+  FileText,
+  Calendar as CalendarIcon
 } from 'lucide-react';
 import DashboardLayout from '@/app/dashboard/layout';
 import { GlassCard } from '@/components/ui/glass-card';
@@ -39,22 +32,23 @@ import { TimePicker } from '@/components/ui/time-picker';
 import { ReceiptDocument } from '@/components/receipt/receipt-document';
 import { useToast } from '@/components/ui/toast';
 import { apiFetch } from '@/lib/api/client';
-import { Patient, ServicePackage, ReceiptItem, PaymentMethod, Receipt } from '@patient-portal/shared';
+import { Patient, ServicePackage, ReceiptItem, PaymentMethod, Receipt, PatientAccountBalance } from '@patient-portal/shared';
 
-export default function NewReceiptPage() {
+function ReceiptFormContent() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { showToast } = useToast();
   const patientNumber = params.patientNumber as string;
+  const editParam = searchParams.get('edit');
+  const isEditMode = Boolean(editParam);
 
-  // Patient & Packages State
+  // Patient, Balance & Packages State
   const [patient, setPatient] = useState<Patient | null>(null);
   const [availablePackages, setAvailablePackages] = useState<ServicePackage[]>([]);
+  const [previousDueSnapshot, setPreviousDueSnapshot] = useState<number>(0);
+  const [editReceipt, setEditReceipt] = useState<Receipt | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Existing Receipt Singleton State
-  const [existingReceipt, setExistingReceipt] = useState<Receipt | null>(null);
-  const [isExplicitNewReceipt, setIsExplicitNewReceipt] = useState(false);
 
   // Active View Tab: 'builder' | 'preview'
   const [activeTab, setActiveTab] = useState<'builder' | 'preview'>('builder');
@@ -97,16 +91,23 @@ export default function NewReceiptPage() {
   const [savedReceipt, setSavedReceipt] = useState<Receipt | null>(null);
   const [showPrintModal, setShowPrintModal] = useState(false);
 
-  // Fetch Patient, Existing Receipt & Packages
+  // Fetch Patient, Packages, and Balance / Existing Receipt
   useEffect(() => {
     async function loadData() {
       setIsLoading(true);
       try {
-        const [patientRes, packagesRes, receiptsRes] = await Promise.all([
+        const promises: Promise<any>[] = [
           apiFetch<Patient>(`/patients/${patientNumber}`),
-          apiFetch<ServicePackage[]>('/packages'),
-          apiFetch<Receipt[]>(`/receipts/patient/${patientNumber}`)
-        ]);
+          apiFetch<ServicePackage[]>('/packages')
+        ];
+
+        if (isEditMode && editParam) {
+          promises.push(apiFetch<Receipt>(`/receipts/${editParam}`));
+        } else {
+          promises.push(apiFetch<PatientAccountBalance>(`/receipts/patient/${patientNumber}/balance`));
+        }
+
+        const [patientRes, packagesRes, thirdRes] = await Promise.all(promises);
 
         if (patientRes.success && patientRes.data) {
           setPatient(patientRes.data);
@@ -118,25 +119,34 @@ export default function NewReceiptPage() {
           setAvailablePackages(packagesRes.data);
         }
 
-        // Singleton: Check if an active receipt exists for this patient
-        if (receiptsRes.success && receiptsRes.data && receiptsRes.data.length > 0) {
-          const currentRec = receiptsRes.data[0];
-          setExistingReceipt(currentRec);
-          setItems(currentRec.items || []);
-          setDiscount(String(currentRec.discount || 0));
-          setDiscountType(currentRec.discountType || 'flat');
-          setPaidAmount(String(currentRec.paidAmount || 0));
-          setPaymentMethod(currentRec.paymentMethod || 'cash');
-          setNotes(currentRec.notes || '');
-          if (currentRec.appointmentDate) setAppointmentDate(currentRec.appointmentDate);
-          if (currentRec.appointmentTime) setAppointmentTime(currentRec.appointmentTime);
+        if (isEditMode) {
+          if (thirdRes.success && thirdRes.data) {
+            const rec: Receipt = thirdRes.data;
+            setEditReceipt(rec);
+            setItems(rec.items || []);
+            setDiscount(String(rec.discount || 0));
+            setDiscountType(rec.discountType || 'flat');
+            setPaidAmount(String(rec.paidAmount || 0));
+            setPaymentMethod(rec.paymentMethod || 'cash');
+            setNotes(rec.notes || '');
+            if (rec.appointmentDate) setAppointmentDate(rec.appointmentDate);
+            if (rec.appointmentTime) setAppointmentTime(rec.appointmentTime);
+            if (rec.previousDueSnapshot) setPreviousDueSnapshot(rec.previousDueSnapshot);
+          } else {
+            showToast(`Could not load Invoice #${editParam} for editing.`, 'error');
+          }
         } else {
-          // Restore Draft from LocalStorage if no saved receipt
+          // New Invoice Mode
+          if (thirdRes.success && thirdRes.data) {
+            const bal: PatientAccountBalance = thirdRes.data;
+            setPreviousDueSnapshot(bal.outstandingDue || 0);
+          }
+          // Restore draft if any
           try {
             const savedDraft = localStorage.getItem(`luckydental_receipt_draft_${patientNumber}`);
             if (savedDraft) {
               const parsed = JSON.parse(savedDraft);
-              if (parsed.items && Array.isArray(parsed.items)) setItems(parsed.items);
+              if (parsed.items && Array.isArray(parsed.items) && parsed.items.length > 0) setItems(parsed.items);
               if (parsed.discount !== undefined) setDiscount(parsed.discount);
               if (parsed.discountType) setDiscountType(parsed.discountType);
               if (parsed.paidAmount !== undefined) setPaidAmount(parsed.paidAmount);
@@ -148,7 +158,7 @@ export default function NewReceiptPage() {
           } catch {}
         }
       } catch {
-        showToast('Network error loading patient billing information.', 'error');
+        showToast('Network error loading billing information.', 'error');
       } finally {
         setIsLoading(false);
       }
@@ -157,11 +167,11 @@ export default function NewReceiptPage() {
     if (patientNumber) {
       loadData();
     }
-  }, [patientNumber]);
+  }, [patientNumber, editParam, isEditMode, showToast]);
 
-  // Save Draft to LocalStorage on changes
+  // Save Draft to LocalStorage in New Invoice mode
   useEffect(() => {
-    if (!existingReceipt && (items.length > 0 || Number(paidAmount) > 0 || notes || appointmentDate)) {
+    if (!isEditMode && (items.length > 0 || Number(paidAmount) > 0 || notes || appointmentDate)) {
       try {
         localStorage.setItem(
           `luckydental_receipt_draft_${patientNumber}`,
@@ -169,7 +179,7 @@ export default function NewReceiptPage() {
         );
       } catch {}
     }
-  }, [items, discount, discountType, paidAmount, paymentMethod, appointmentDate, appointmentTime, notes, patientNumber, existingReceipt]);
+  }, [items, discount, discountType, paidAmount, paymentMethod, appointmentDate, appointmentTime, notes, patientNumber, isEditMode]);
 
   // Add Package to Line Items
   const handleAddPackage = () => {
@@ -247,15 +257,15 @@ export default function NewReceiptPage() {
 
   // Reset Draft
   const handleResetDraft = () => {
-    if (existingReceipt) {
-      setItems(existingReceipt.items || []);
-      setDiscount(String(existingReceipt.discount || 0));
-      setPaidAmount(String(existingReceipt.paidAmount || 0));
-      setNotes(existingReceipt.notes || '');
-      setAppointmentDate(existingReceipt.appointmentDate || '');
-      setAppointmentTime(existingReceipt.appointmentTime || '07:30 PM');
+    if (isEditMode && editReceipt) {
+      setItems(editReceipt.items || []);
+      setDiscount(String(editReceipt.discount || 0));
+      setPaidAmount(String(editReceipt.paidAmount || 0));
+      setNotes(editReceipt.notes || '');
+      setAppointmentDate(editReceipt.appointmentDate || '');
+      setAppointmentTime(editReceipt.appointmentTime || '07:30 PM');
       setValidationErrors([]);
-      showToast('Reset back to saved receipt state', 'info');
+      showToast('Reset back to saved invoice state', 'info');
     } else {
       setItems([]);
       setDiscount('0');
@@ -267,7 +277,7 @@ export default function NewReceiptPage() {
       try {
         localStorage.removeItem(`luckydental_receipt_draft_${patientNumber}`);
       } catch {}
-      showToast('Receipt draft cleared', 'info');
+      showToast('Invoice draft cleared', 'info');
     }
   };
 
@@ -284,29 +294,36 @@ export default function NewReceiptPage() {
     return Math.min(subtotal, d);
   }, [subtotal, discount, discountType]);
 
-  const grandTotal = useMemo(() => {
+  const visitTotal = useMemo(() => {
     return Math.max(0, subtotal - discountAmount);
   }, [subtotal, discountAmount]);
+
+  const totalPayable = useMemo(() => {
+    return isEditMode 
+      ? visitTotal + (editReceipt?.previousDueSnapshot || 0)
+      : visitTotal + previousDueSnapshot;
+  }, [isEditMode, visitTotal, editReceipt, previousDueSnapshot]);
 
   const paidNum = useMemo(() => {
     return Math.max(0, Number(paidAmount) || 0);
   }, [paidAmount]);
 
   const dueAmount = useMemo(() => {
-    return Math.max(0, grandTotal - paidNum);
-  }, [grandTotal, paidNum]);
+    return Math.max(0, totalPayable - paidNum);
+  }, [totalPayable, paidNum]);
 
-  // Pre-fill paidAmount with grandTotal
+  // Pre-fill paidAmount with totalPayable
   const handleSetFullPayment = () => {
-    setPaidAmount(grandTotal.toString());
+    setPaidAmount(totalPayable.toString());
     setHighlightPaidAmount(false);
   };
 
   // Construct Transient Receipt for Live Preview
   const livePreviewReceipt: Receipt = useMemo(() => {
+    const prevDue = isEditMode ? (editReceipt?.previousDueSnapshot || 0) : previousDueSnapshot;
     return {
-      id: existingReceipt?.id || `rec-preview`,
-      receiptNumber: existingReceipt?.receiptNumber || 'DRAFT',
+      id: editReceipt?.id || `rec-preview`,
+      receiptNumber: editReceipt?.receiptNumber || 999999,
       patientId: patient?.id || patient?._id || '',
       patientNumber: Number(patientNumber),
       patientName: patient?.fullName || 'Patient',
@@ -320,17 +337,21 @@ export default function NewReceiptPage() {
       subtotal,
       discount: discountAmount,
       discountType,
-      totalAmount: grandTotal,
+      totalAmount: visitTotal,
+      previousDueSnapshot: prevDue,
+      totalPayable,
       paidAmount: paidNum,
+      resultingDue: dueAmount,
       dueAmount,
       paymentMethod,
-      paymentStatus: dueAmount === 0 && grandTotal > 0 ? 'paid' : paidNum > 0 ? 'partial' : 'pending',
+      paymentStatus: dueAmount === 0 && totalPayable > 0 ? 'paid' : paidNum > 0 ? 'partial' : 'pending',
+      status: dueAmount === 0 && totalPayable > 0 ? 'paid' : paidNum > 0 ? 'partial' : 'pending',
       notes,
-      version: existingReceipt?.version || 1,
-      createdAt: existingReceipt?.createdAt || new Date().toISOString(),
+      version: editReceipt?.version || 1,
+      createdAt: editReceipt?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-  }, [existingReceipt, patient, patientNumber, appointmentDate, appointmentTime, items, subtotal, discountAmount, discountType, grandTotal, paidNum, dueAmount, paymentMethod, notes]);
+  }, [editReceipt, isEditMode, previousDueSnapshot, patient, patientNumber, appointmentDate, appointmentTime, items, subtotal, discountAmount, discountType, visitTotal, totalPayable, paidNum, dueAmount, paymentMethod, notes]);
 
   // Submit & Save Receipt with full validation
   const handleSaveReceipt = async (triggerPrint = false) => {
@@ -351,9 +372,9 @@ export default function NewReceiptPage() {
       proceduresRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    // Validation Check 2: Paid Amount exceeds Grand Total
-    if (paidNum > grandTotal) {
-      errors.push(`Cash deposit (৳${paidNum.toLocaleString('en-BD')}) cannot be greater than Grand Total (৳${grandTotal.toLocaleString('en-BD')}).`);
+    // Validation Check 2: Paid Amount exceeds Total Payable
+    if (paidNum > totalPayable) {
+      errors.push(`Cash deposit (৳${paidNum.toLocaleString('en-BD')}) cannot exceed Total Payable (৳${totalPayable.toLocaleString('en-BD')}).`);
       setHighlightPaidAmount(true);
       paidAmountRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
@@ -368,33 +389,41 @@ export default function NewReceiptPage() {
     setIsSubmitting(true);
 
     try {
-      const res = await apiFetch<any>('/receipts', {
-        method: 'POST',
-        body: JSON.stringify({
-          patientNumber: Number(patientNumber),
-          items: items.map((i) => ({
-            name: i.name,
-            description: i.description,
-            packageId: i.packageId,
-            price: i.price,
-            quantity: i.quantity
-          })),
-          discount: Number(discount) || 0,
-          discountType,
-          paidAmount: Number(paidAmount) || 0,
-          paymentMethod,
-          appointmentDate: appointmentDate?.trim() || undefined,
-          appointmentTime: appointmentTime?.trim() || undefined,
-          notes: notes.trim() || undefined,
-          isNewReceipt: isExplicitNewReceipt
-        })
-      });
+      const payload = {
+        patientNumber: Number(patientNumber),
+        items: items.map((i) => ({
+          name: i.name,
+          description: i.description,
+          packageId: i.packageId,
+          price: i.price,
+          quantity: i.quantity
+        })),
+        discount: Number(discount) || 0,
+        discountType,
+        paidAmount: Number(paidAmount) || 0,
+        paymentMethod,
+        appointmentDate: appointmentDate?.trim() || undefined,
+        appointmentTime: appointmentTime?.trim() || undefined,
+        notes: notes.trim() || undefined,
+        isNewReceipt: !isEditMode
+      };
+
+      let res: any;
+      if (isEditMode && editParam) {
+        res = await apiFetch<any>(`/receipts/${editParam}`, {
+          method: 'PUT',
+          body: JSON.stringify(payload)
+        });
+      } else {
+        res = await apiFetch<any>('/receipts', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+      }
 
       if (res.success && res.data) {
         const receipt = res.data?.data || res.data;
         setSavedReceipt(receipt);
-        setExistingReceipt(receipt);
-        setIsExplicitNewReceipt(false);
         
         // Clear saved draft on success
         try {
@@ -403,9 +432,9 @@ export default function NewReceiptPage() {
 
         const recNum = receipt.receiptNumber || receipt.id || '';
         showToast(
-          existingReceipt && !isExplicitNewReceipt
-            ? `Receipt #${recNum} updated successfully!`
-            : `Receipt #${recNum} generated successfully!`,
+          isEditMode
+            ? `Invoice #${recNum} updated successfully!`
+            : `New Visit Invoice #${recNum} generated successfully!`,
           'success'
         );
 
@@ -455,21 +484,25 @@ export default function NewReceiptPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                  {existingReceipt && !isExplicitNewReceipt ? 'Edit Patient Receipt' : 'Create Patient Receipt'}
+                  {isEditMode ? `Edit Invoice #${editParam}` : 'Create New Visit Invoice'}
                 </h1>
                 <span className="px-2.5 py-0.5 rounded-full bg-red-50 dark:bg-red-950/80 border border-red-200 dark:border-red-700/60 text-red-600 dark:text-red-400 text-xs font-mono font-bold">
-                  #{patientNumber}
+                  Patient #{patientNumber}
                 </span>
-                {existingReceipt && !isExplicitNewReceipt && (
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-700/60 text-emerald-700 dark:text-emerald-400 text-[11px] font-mono font-bold">
-                    INVOICE #{existingReceipt.receiptNumber}
+                {isEditMode ? (
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-700/60 text-amber-700 dark:text-amber-400 text-[11px] font-mono font-bold">
+                    Editing Mode
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-700/60 text-emerald-700 dark:text-emerald-400 text-[11px] font-mono font-bold">
+                    Multi-Visit Mode
                   </span>
                 )}
               </div>
               <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">
-                {existingReceipt && !isExplicitNewReceipt
-                  ? 'Editing existing active receipt (Singleton). Preserves invoice number & records version history.'
-                  : 'Treatment billing, appointment booking, advance deposit, and official PDF invoice'}
+                {isEditMode 
+                  ? `Editing existing Invoice #${editParam} in-place. Version history and payment audits preserved.`
+                  : 'Independent visit invoice. Previous unresolved dues are carried forward automatically without double counting.'}
               </p>
             </div>
           </div>
@@ -509,30 +542,23 @@ export default function NewReceiptPage() {
           </div>
         </div>
 
-        {/* Existing Receipt Banner with Explicit New Receipt Option */}
-        {existingReceipt && (
-          <GlassCard className="p-4 border-l-4 border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20 border-slate-200 dark:border-white/10">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
-              <div>
-                <p className="font-bold text-amber-900 dark:text-amber-200">
-                  {isExplicitNewReceipt ? 'Mode: Creating New Additional Receipt' : `Active Receipt Found (#${existingReceipt.receiptNumber})`}
-                </p>
-                <p className="text-amber-700 dark:text-amber-300/80 text-[11px] mt-0.5">
-                  {isExplicitNewReceipt
-                    ? 'A new separate receipt number will be generated upon saving.'
-                    : 'Changes will update this current receipt without generating a duplicate receipt number.'}
-                </p>
+        {/* Previous Due Carry Forward Notice (New Invoice Mode) */}
+        {!isEditMode && previousDueSnapshot > 0 && (
+          <GlassCard className="p-4 border-l-4 border-l-amber-500 bg-amber-500/10 border-amber-500/30">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-amber-500/20 text-amber-400 shrink-0">
+                  <CreditCard className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="font-bold text-amber-200">
+                    Previous Unresolved Due: <span className="font-mono text-sm font-black text-amber-300">৳{previousDueSnapshot.toLocaleString('en-BD')}</span>
+                  </p>
+                  <p className="text-amber-300/80 text-[11px] mt-0.5">
+                    This balance from prior visits is automatically carried forward into Total Payable for this visit.
+                  </p>
+                </div>
               </div>
-
-              <Button
-                type="button"
-                variant={isExplicitNewReceipt ? 'outline' : 'secondary'}
-                size="sm"
-                onClick={() => setIsExplicitNewReceipt(!isExplicitNewReceipt)}
-                className="text-xs shrink-0"
-              >
-                {isExplicitNewReceipt ? 'Switch to Edit Existing' : 'Create New Receipt Instead'}
-              </Button>
             </div>
           </GlassCard>
         )}
@@ -810,7 +836,7 @@ export default function NewReceiptPage() {
 
                 {/* Subtotal Display */}
                 <div className="flex justify-between items-center text-xs text-slate-600 dark:text-gray-300">
-                  <span>Subtotal:</span>
+                  <span>Subtotal (This Visit):</span>
                   <span className="font-mono font-bold text-slate-900 dark:text-gray-100">৳{subtotal.toLocaleString('en-BD')}</span>
                 </div>
 
@@ -854,12 +880,26 @@ export default function NewReceiptPage() {
                   )}
                 </div>
 
-                {/* Grand Total Highlight */}
+                {/* This Visit Charges */}
+                <div className="flex justify-between items-center text-xs text-slate-700 dark:text-gray-200 font-semibold pt-1">
+                  <span>This Visit Charges:</span>
+                  <span className="font-mono font-bold">৳{visitTotal.toLocaleString('en-BD')}</span>
+                </div>
+
+                {/* Previous Due Row (if any) */}
+                {previousDueSnapshot > 0 && (
+                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex justify-between items-center text-xs">
+                    <span className="text-amber-200 font-medium">Previous Balance Due:</span>
+                    <span className="font-mono font-bold text-amber-300">+৳{previousDueSnapshot.toLocaleString('en-BD')}</span>
+                  </div>
+                )}
+
+                {/* Total Payable Highlight */}
                 <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-700/50 space-y-1">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-900 dark:text-gray-200">Grand Total:</span>
+                    <span className="text-xs font-bold text-slate-900 dark:text-gray-200">Total Payable:</span>
                     <span className="text-xl font-black font-mono text-red-600 dark:text-red-400">
-                      ৳{grandTotal.toLocaleString('en-BD')}
+                      ৳{totalPayable.toLocaleString('en-BD')}
                     </span>
                   </div>
                 </div>
@@ -875,13 +915,13 @@ export default function NewReceiptPage() {
                       onClick={handleSetFullPayment}
                       className="text-[10px] text-red-600 dark:text-red-400 hover:underline font-bold"
                     >
-                      Pay Full (৳{grandTotal.toLocaleString('en-BD')})
+                      Pay Full (৳{totalPayable.toLocaleString('en-BD')})
                     </button>
                   </div>
                   <Input
                     type="number"
                     min="0"
-                    max={grandTotal}
+                    max={totalPayable}
                     placeholder="0"
                     value={paidAmount}
                     onChange={(e) => {
@@ -896,7 +936,7 @@ export default function NewReceiptPage() {
 
                 {/* Due Balance Calculation */}
                 <div className="flex justify-between items-center p-3 rounded-xl bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 text-xs">
-                  <span className="text-slate-700 dark:text-gray-300 font-semibold">Due Balance:</span>
+                  <span className="text-slate-700 dark:text-gray-300 font-semibold">Remaining Due:</span>
                   <span className={`font-mono font-extrabold text-sm ${dueAmount > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                     ৳{dueAmount.toLocaleString('en-BD')}
                   </span>
@@ -966,7 +1006,7 @@ export default function NewReceiptPage() {
                     {isSubmitting ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Saving receipt...</span>
+                        <span>Saving invoice...</span>
                       </>
                     ) : (
                       <>
@@ -988,12 +1028,12 @@ export default function NewReceiptPage() {
                     {isSubmitting ? (
                       <>
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Saving receipt...</span>
+                        <span>Saving invoice...</span>
                       </>
                     ) : (
                       <>
                         <Save className="w-3.5 h-3.5" />
-                        <span>Save Receipt & Finish</span>
+                        <span>Save Invoice & Finish</span>
                       </>
                     )}
                   </Button>
@@ -1100,5 +1140,21 @@ export default function NewReceiptPage() {
         )}
       </Modal>
     </DashboardLayout>
+  );
+}
+
+export default function NewReceiptPage() {
+  return (
+    <Suspense
+      fallback={
+        <DashboardLayout>
+          <div className="min-h-[400px] flex items-center justify-center">
+            <Loader2 className="w-8 h-8 text-red-600 animate-spin" />
+          </div>
+        </DashboardLayout>
+      }
+    >
+      <ReceiptFormContent />
+    </Suspense>
   );
 }

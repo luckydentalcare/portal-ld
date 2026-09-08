@@ -37,7 +37,8 @@ import { TimePicker } from '@/components/ui/time-picker';
 import { ReceiptDocument } from '@/components/receipt/receipt-document';
 import { useToast } from '@/components/ui/toast';
 import { apiFetch } from '@/lib/api/client';
-import { Patient, ImageMetadata, Receipt, Appointment, AppointmentStatus } from '@patient-portal/shared';
+import { Patient, ImageMetadata, Receipt, Appointment, AppointmentStatus, PatientAccountBalance, PaymentMethod } from '@patient-portal/shared';
+import { getAppointmentLifecycle } from '@/lib/utils/date-time';
 
 export default function PatientProfilePage() {
   const params = useParams();
@@ -65,6 +66,24 @@ export default function PatientProfilePage() {
   const [editDistrict, setEditDistrict] = useState('');
   const [editProblem, setEditProblem] = useState('');
   const [editProfileImage, setEditProfileImage] = useState<ImageMetadata | string | null>(null);
+  const [editCustomFields, setEditCustomFields] = useState<Record<string, any>>({});
+  const [customFieldDefs, setCustomFieldDefs] = useState<any[]>([]);
+
+  // Account Financial Balance State
+  const [accountBalance, setAccountBalance] = useState<PatientAccountBalance | null>(null);
+
+  // Quick Record Payment modal state
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
+  const [paymentReceiptNumber, setPaymentReceiptNumber] = useState<string>('auto');
+  const [paymentTransactionId, setPaymentTransactionId] = useState('');
+  const [paymentNotes, setPaymentNotes] = useState('');
+  const [isSavingPayment, setIsSavingPayment] = useState(false);
+
+  // Cancel Invoice modal state
+  const [cancelReceiptTarget, setCancelReceiptTarget] = useState<Receipt | null>(null);
+  const [isCancellingReceipt, setIsCancellingReceipt] = useState(false);
 
   // Delete modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -101,10 +120,12 @@ export default function PatientProfilePage() {
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const [patientRes, receiptsRes, appointmentsRes] = await Promise.all([
+      const [patientRes, receiptsRes, appointmentsRes, balanceRes, fieldsRes] = await Promise.all([
         apiFetch<Patient>(`/patients/${patientNumber}`),
         apiFetch<Receipt[]>(`/receipts/patient/${patientNumber}`),
-        apiFetch<Appointment[]>(`/appointments/patient/${patientNumber}`)
+        apiFetch<Appointment[]>(`/appointments/patient/${patientNumber}`),
+        apiFetch<PatientAccountBalance>(`/receipts/patient/${patientNumber}/balance`),
+        apiFetch<any[]>('/custom-fields')
       ]);
 
       if (patientRes.success && patientRes.data) {
@@ -119,6 +140,14 @@ export default function PatientProfilePage() {
 
       if (appointmentsRes.success && appointmentsRes.data) {
         setAppointments(appointmentsRes.data);
+      }
+
+      if (balanceRes.success && balanceRes.data) {
+        setAccountBalance(balanceRes.data);
+      }
+
+      if (fieldsRes.success && Array.isArray(fieldsRes.data)) {
+        setCustomFieldDefs(fieldsRes.data.filter((f: any) => f.active !== false));
       }
     } catch {
       setErrorMessage('Unable to connect to backend server. Please verify network connection.');
@@ -145,6 +174,14 @@ export default function PatientProfilePage() {
     setEditDistrict(patient.district || '');
     setEditProblem(patient.patientProblem);
     setEditProfileImage(patient.profileImage || null);
+
+    const initialCustom: Record<string, any> = {};
+    if (patient.customFields && Array.isArray(patient.customFields)) {
+      for (const cf of patient.customFields) {
+        initialCustom[cf.key] = cf.value;
+      }
+    }
+    setEditCustomFields(initialCustom);
     setIsEditOpen(true);
   };
 
@@ -186,6 +223,14 @@ export default function PatientProfilePage() {
     e.preventDefault();
     if (!patient) return;
 
+    const customFieldsPayload = customFieldDefs
+      .map((def) => ({
+        fieldId: def._id || def.id,
+        key: def.key,
+        value: editCustomFields[def.key] !== undefined ? editCustomFields[def.key] : ''
+      }))
+      .filter((cf) => cf.value !== '' && cf.value !== undefined);
+
     setIsSavingEdit(true);
     try {
       const res = await apiFetch<Patient>(`/patients/${patient.patientNumber}`, {
@@ -199,7 +244,8 @@ export default function PatientProfilePage() {
           village: editVillage.trim() || undefined,
           district: editDistrict.trim() || undefined,
           patientProblem: editProblem.trim(),
-          profileImage: editProfileImage
+          profileImage: editProfileImage,
+          customFields: customFieldsPayload.length > 0 ? customFieldsPayload : undefined
         })
       });
 
@@ -215,6 +261,65 @@ export default function PatientProfilePage() {
       showToast('Network error updating patient', 'error');
     } finally {
       setIsSavingEdit(false);
+    }
+  };
+
+  // Record Payment Handler
+  const handleRecordPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amt = Number(paymentAmount);
+    if (!amt || amt <= 0) {
+      showToast('Please enter a valid payment amount', 'error');
+      return;
+    }
+    setIsSavingPayment(true);
+    try {
+      const res = await apiFetch(`/receipts/patient/${patientNumber}/payments`, {
+        method: 'POST',
+        body: JSON.stringify({
+          amount: amt,
+          paymentMethod,
+          receiptNumber: paymentReceiptNumber === 'auto' ? undefined : Number(paymentReceiptNumber),
+          transactionId: paymentTransactionId.trim() || undefined,
+          notes: paymentNotes.trim() || undefined
+        })
+      });
+      if (res.success) {
+        showToast('Payment recorded and allocated successfully', 'success');
+        setShowPaymentModal(false);
+        setPaymentAmount('');
+        setPaymentNotes('');
+        setPaymentTransactionId('');
+        fetchPatientData();
+      } else {
+        showToast(res.error || 'Failed to record payment', 'error');
+      }
+    } catch {
+      showToast('Network error recording payment', 'error');
+    } finally {
+      setIsSavingPayment(false);
+    }
+  };
+
+  // Confirm Cancel Invoice Handler
+  const handleConfirmCancelReceipt = async () => {
+    if (!cancelReceiptTarget) return;
+    setIsCancellingReceipt(true);
+    try {
+      const res = await apiFetch(`/receipts/${cancelReceiptTarget.receiptNumber}/cancel`, {
+        method: 'POST'
+      });
+      if (res.success) {
+        showToast(`Invoice #${cancelReceiptTarget.receiptNumber} cancelled successfully`, 'success');
+        setCancelReceiptTarget(null);
+        fetchPatientData();
+      } else {
+        showToast(res.error || 'Failed to cancel invoice', 'error');
+      }
+    } catch {
+      showToast('Network error cancelling invoice', 'error');
+    } finally {
+      setIsCancellingReceipt(false);
     }
   };
 
@@ -476,7 +581,7 @@ export default function PatientProfilePage() {
             <Link href={`/patients/${patient.patientNumber}/receipt/new`}>
               <Button variant="primary" size="sm" className="text-xs gap-1.5 shadow-glow-red">
                 <ReceiptIcon className="w-3.5 h-3.5" />
-                {receipts.length > 0 ? 'Edit / View Receipt' : 'Create Receipt'}
+                New Invoice
               </Button>
             </Link>
           </div>
@@ -529,6 +634,85 @@ export default function PatientProfilePage() {
                   &ldquo;{patient.patientProblem}&rdquo;
                 </p>
               </div>
+
+              {/* Dynamic Custom Fields Badges / Information */}
+              {patient.customFields && patient.customFields.length > 0 && (
+                <div className="pt-2 border-t border-white/5">
+                  <p className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1.5">Custom Details</p>
+                  <div className="flex flex-wrap gap-2">
+                    {patient.customFields.map((cf, idx) => {
+                      const def = customFieldDefs.find(d => d.key === cf.key);
+                      const label = def?.name || cf.key.replace(/_/g, ' ');
+                      return (
+                        <div key={idx} className="px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/10 text-xs">
+                          <span className="text-gray-400 capitalize">{label}: </span>
+                          <span className="font-semibold text-gray-100">{String(cf.value)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </GlassCard>
+
+        {/* Patient Account Financial Summary */}
+        <GlassCard className="p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+            <div>
+              <h3 className="text-sm font-bold text-gray-100 uppercase tracking-wider flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-red-400" />
+                Patient Billing Account & Outstanding Balance
+              </h3>
+              <p className="text-xs text-gray-400 mt-0.5">Multi-visit ledger reconciliation & cash collection history</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  if (accountBalance?.outstandingDue) {
+                    setPaymentAmount(String(accountBalance.outstandingDue));
+                  } else {
+                    setPaymentAmount('');
+                  }
+                  setShowPaymentModal(true);
+                }}
+                className="text-xs gap-1.5"
+              >
+                <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
+                Record Payment
+              </Button>
+              <Link href={`/patients/${patient.patientNumber}/receipt/new`}>
+                <Button variant="primary" size="sm" className="text-xs gap-1.5 shadow-glow-red">
+                  <Plus className="w-3.5 h-3.5" />
+                  New Invoice
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4">
+            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
+              <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Total Invoiced</p>
+              <p className="text-lg font-mono font-bold text-white">৳{(accountBalance?.totalInvoiced ?? 0).toLocaleString('en-BD')}</p>
+            </div>
+            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
+              <p className="text-[10px] text-emerald-400 uppercase font-bold tracking-wider">Total Paid</p>
+              <p className="text-lg font-mono font-bold text-emerald-400">৳{(accountBalance?.totalPaid ?? 0).toLocaleString('en-BD')}</p>
+            </div>
+            <div className={`p-3.5 rounded-xl border space-y-1 ${(accountBalance?.outstandingDue ?? 0) > 0 ? 'bg-red-950/40 border-red-800/40' : 'bg-emerald-950/30 border-emerald-800/30'}`}>
+              <p className={`text-[10px] uppercase font-bold tracking-wider ${(accountBalance?.outstandingDue ?? 0) > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                Outstanding Due
+              </p>
+              <p className={`text-lg font-mono font-black ${(accountBalance?.outstandingDue ?? 0) > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                ৳{(accountBalance?.outstandingDue ?? 0).toLocaleString('en-BD')}
+              </p>
+            </div>
+            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
+              <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Invoices Count</p>
+              <p className="text-lg font-mono font-bold text-gray-200">{accountBalance?.invoiceCount ?? receipts.length}</p>
             </div>
           </div>
         </GlassCard>
@@ -573,49 +757,42 @@ export default function PatientProfilePage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {appointments.map((apt) => (
-                    <tr key={apt.id || (apt as any)._id} className="hover:bg-white/[0.02]">
-                      <td className="py-3">
-                        <p className="font-bold text-gray-100">{apt.appointmentDate}</p>
-                        <p className="text-[11px] text-gray-400 font-mono">{apt.appointmentTime}</p>
-                      </td>
-                      <td className="py-3 text-gray-200">
-                        <span className="font-semibold">{apt.category}</span>
-                        {apt.notes && <p className="text-[10px] text-gray-400 italic truncate max-w-xs">{apt.notes}</p>}
-                      </td>
-                      <td className="py-3">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                          apt.status === 'completed'
-                            ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-700/50'
-                            : apt.status === 'cancelled'
-                            ? 'bg-red-950/80 text-red-400 border border-red-800/50'
-                            : 'bg-blue-950/80 text-blue-300 border border-blue-800/50'
-                        }`}>
-                          {apt.status}
-                        </span>
-                      </td>
-                      <td className="py-3 text-right">
-                        <div className="inline-flex items-center gap-1.5">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenEditApt(apt)}
-                            className="h-7 px-2 text-[11px] text-gray-300 hover:text-white hover:bg-white/10 gap-1"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                            Edit
-                          </Button>
-                          {apt.status === 'upcoming' && (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleUpdateAptStatus(apt.id || (apt as any)._id, 'completed')}
-                                className="h-7 px-2 text-[11px] text-emerald-400 hover:bg-emerald-950/40 gap-1"
-                              >
-                                <Check className="w-3.5 h-3.5" />
-                                Done
-                              </Button>
+                  {appointments.map((apt) => {
+                    const effectiveStatus = getAppointmentLifecycle(apt.appointmentDate, apt.appointmentTime, apt.status);
+
+                    return (
+                      <tr key={apt.id || (apt as any)._id} className="hover:bg-white/[0.02]">
+                        <td className="py-3">
+                          <p className="font-bold text-gray-100">{apt.appointmentDate}</p>
+                          <p className="text-[11px] text-gray-400 font-mono">{apt.appointmentTime}</p>
+                        </td>
+                        <td className="py-3 text-gray-200">
+                          <span className="font-semibold">{apt.category}</span>
+                          {apt.notes && <p className="text-[10px] text-gray-400 italic truncate max-w-xs">{apt.notes}</p>}
+                        </td>
+                        <td className="py-3">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                            effectiveStatus === 'completed'
+                              ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-700/50'
+                              : effectiveStatus === 'cancelled'
+                              ? 'bg-red-950/80 text-red-400 border border-red-800/50'
+                              : 'bg-blue-950/80 text-blue-300 border border-blue-800/50'
+                          }`}>
+                            {effectiveStatus === 'completed' ? 'Completed / Past' : effectiveStatus}
+                          </span>
+                        </td>
+                        <td className="py-3 text-right">
+                          <div className="inline-flex items-center gap-1.5">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenEditApt(apt)}
+                              className="h-7 px-2 text-[11px] text-gray-300 hover:text-white hover:bg-white/10 gap-1"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                              Edit
+                            </Button>
+                            {effectiveStatus === 'upcoming' && (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -625,12 +802,12 @@ export default function PatientProfilePage() {
                                 <X className="w-3.5 h-3.5" />
                                 Cancel
                               </Button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -649,7 +826,7 @@ export default function PatientProfilePage() {
             <Link href={`/patients/${patient.patientNumber}/receipt/new`}>
               <Button variant="primary" size="sm" className="text-xs gap-1.5 shadow-glow-red">
                 <Plus className="w-3.5 h-3.5" />
-                {receipts.length > 0 ? 'Edit Active Receipt' : 'New Invoice'}
+                New Invoice
               </Button>
             </Link>
           </div>
@@ -671,89 +848,175 @@ export default function PatientProfilePage() {
                   <tr className="border-b border-white/10 text-gray-400 font-semibold uppercase tracking-wider">
                     <th className="pb-2.5">Invoice #</th>
                     <th className="pb-2.5">Date</th>
-                    <th className="pb-2.5">Appointment</th>
                     <th className="pb-2.5">Items</th>
-                    <th className="pb-2.5 text-right">Total</th>
+                    <th className="pb-2.5 text-right">Prev Due</th>
+                    <th className="pb-2.5 text-right">Visit Total</th>
+                    <th className="pb-2.5 text-right">Total Payable</th>
                     <th className="pb-2.5 text-right">Paid</th>
-                    <th className="pb-2.5 text-right">Due</th>
+                    <th className="pb-2.5 text-right">Remaining</th>
                     <th className="pb-2.5 text-center">Status</th>
                     <th className="pb-2.5 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {receipts.map((rec) => (
-                    <tr key={rec.id || (rec as any)._id} className="hover:bg-white/[0.02]">
-                      <td className="py-3 font-mono font-bold text-red-400">
-                        #{rec.receiptNumber}
-                      </td>
-                      <td className="py-3 text-gray-400">
-                        {new Date(rec.createdAt).toLocaleDateString('en-GB')}
-                      </td>
-                      <td className="py-3 text-gray-300">
-                        {rec.appointmentDate ? (
-                          <span className="text-[11px] font-medium text-red-300">
-                            {rec.appointmentDate} ({rec.appointmentTime || 'N/A'})
-                          </span>
-                        ) : (
-                          <span className="text-gray-500 italic text-[11px]">Not scheduled</span>
-                        )}
-                      </td>
-                      <td className="py-3 text-gray-300">
-                        {rec.items?.length || 0} service(s)
-                      </td>
-                      <td className="py-3 text-right font-mono font-semibold text-gray-100">
-                        ৳{rec.totalAmount?.toLocaleString('en-BD')}
-                      </td>
-                      <td className="py-3 text-right font-mono text-emerald-400">
-                        ৳{rec.paidAmount?.toLocaleString('en-BD')}
-                      </td>
-                      <td className="py-3 text-right font-mono font-bold text-red-400">
-                        ৳{rec.dueAmount?.toLocaleString('en-BD')}
-                      </td>
-                      <td className="py-3 text-center">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                          rec.paymentStatus === 'paid' 
-                            ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-700/40' 
-                            : 'bg-red-950/80 text-red-400 border border-red-700/40'
-                        }`}>
-                          {rec.paymentStatus}
-                        </span>
-                      </td>
-                      <td className="py-3 text-right">
-                        <div className="inline-flex items-center gap-1.5">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedReceipt(rec);
-                              setShowReceiptModal(true);
-                            }}
-                            className="h-7 px-2 text-xs text-gray-300 hover:text-white gap-1"
-                            title="View full invoice"
-                          >
-                            <Eye className="w-3.5 h-3.5 text-red-400" />
-                            View
-                          </Button>
-                          <Link href={`/patients/${patient.patientNumber}/receipt/new`}>
+                  {receipts.map((rec) => {
+                    const isCancelled = rec.status === 'cancelled';
+                    const prevDue = rec.previousDueSnapshot || 0;
+                    const payable = rec.totalPayable ?? (rec.totalAmount + prevDue);
+                    const dueRem = rec.resultingDue ?? rec.dueAmount ?? 0;
+
+                    return (
+                      <tr key={rec.id || (rec as any)._id} className={`hover:bg-white/[0.02] ${isCancelled ? 'opacity-50' : ''}`}>
+                        <td className="py-3 font-mono font-bold text-red-400">
+                          #{rec.receiptNumber}
+                        </td>
+                        <td className="py-3 text-gray-400">
+                          {new Date(rec.createdAt).toLocaleDateString('en-GB')}
+                        </td>
+                        <td className="py-3 text-gray-300">
+                          {rec.items?.length || 0} procedure(s)
+                        </td>
+                        <td className="py-3 text-right font-mono text-amber-400/90">
+                          ৳{prevDue.toLocaleString('en-BD')}
+                        </td>
+                        <td className="py-3 text-right font-mono font-semibold text-gray-100">
+                          ৳{rec.totalAmount?.toLocaleString('en-BD')}
+                        </td>
+                        <td className="py-3 text-right font-mono font-bold text-gray-100">
+                          ৳{payable.toLocaleString('en-BD')}
+                        </td>
+                        <td className="py-3 text-right font-mono text-emerald-400">
+                          ৳{rec.paidAmount?.toLocaleString('en-BD')}
+                        </td>
+                        <td className="py-3 text-right font-mono font-bold text-red-400">
+                          ৳{dueRem.toLocaleString('en-BD')}
+                        </td>
+                        <td className="py-3 text-center">
+                          {isCancelled ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-zinc-900 text-zinc-400 border border-zinc-700">
+                              Cancelled
+                            </span>
+                          ) : (
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                              (rec.paymentStatus === 'paid' || rec.status === 'paid' || dueRem === 0)
+                                ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-700/40' 
+                                : 'bg-red-950/80 text-red-400 border border-red-700/40'
+                            }`}>
+                              {isCancelled ? 'Cancelled' : (dueRem === 0 ? 'paid' : rec.paymentStatus || 'pending')}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 text-right">
+                          <div className="inline-flex items-center gap-1.5">
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-7 px-2 text-xs text-gray-400 hover:text-white gap-1"
-                              title="Edit receipt"
+                              onClick={() => {
+                                setSelectedReceipt(rec);
+                                setShowReceiptModal(true);
+                              }}
+                              className="h-7 px-2 text-xs text-gray-300 hover:text-white gap-1"
+                              title="View full invoice"
                             >
-                              <Edit3 className="w-3.5 h-3.5" />
-                              Edit
+                              <Eye className="w-3.5 h-3.5 text-red-400" />
+                              View
                             </Button>
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            {!isCancelled && (
+                              <>
+                                <Link href={`/patients/${patient.patientNumber}/receipt/new?edit=${rec.receiptNumber}`}>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 text-xs text-gray-400 hover:text-white gap-1"
+                                    title="Edit receipt"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                    Edit
+                                  </Button>
+                                </Link>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setCancelReceiptTarget(rec)}
+                                  className="h-7 px-2 text-xs text-red-400/80 hover:text-red-300 hover:bg-red-950/40 gap-1"
+                                  title="Cancel invoice"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                  Cancel
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           )}
         </GlassCard>
+
+        {/* Patient Payments History Table */}
+        {receipts.some((r) => r.payments && r.payments.length > 0) && (
+          <GlassCard className="p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-emerald-400" />
+                <h3 className="text-sm font-bold text-gray-100 uppercase tracking-wider">
+                  Payment Transactions Ledger
+                </h3>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  if (accountBalance?.outstandingDue) setPaymentAmount(String(accountBalance.outstandingDue));
+                  setShowPaymentModal(true);
+                }}
+                className="text-xs gap-1.5"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Record Payment
+              </Button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-white/10 text-gray-400 font-semibold uppercase tracking-wider">
+                    <th className="pb-2.5">Date</th>
+                    <th className="pb-2.5">Invoice #</th>
+                    <th className="pb-2.5">Method</th>
+                    <th className="pb-2.5">Trx ID / Ref</th>
+                    <th className="pb-2.5 text-right">Amount Paid</th>
+                    <th className="pb-2.5">Notes</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {receipts
+                    .flatMap((r) => (r.payments || []).map((p) => ({ ...p, receiptNumber: r.receiptNumber })))
+                    .sort((a, b) => new Date(b.paymentDate || b.date || b.createdAt || 0).getTime() - new Date(a.paymentDate || a.date || a.createdAt || 0).getTime())
+                    .map((pay, pIdx) => {
+                      const payDate = pay.paymentDate || pay.date || pay.createdAt;
+                      return (
+                        <tr key={pay.id || pIdx} className="hover:bg-white/[0.02]">
+                          <td className="py-2.5 text-gray-400">{payDate ? new Date(payDate).toLocaleDateString('en-GB') : '—'}</td>
+                          <td className="py-2.5 font-mono font-bold text-red-400">#{pay.receiptNumber}</td>
+                          <td className="py-2.5 uppercase font-semibold text-gray-300">{pay.paymentMethod || 'cash'}</td>
+                          <td className="py-2.5 font-mono text-gray-400">{pay.transactionId || '—'}</td>
+                          <td className="py-2.5 text-right font-mono font-bold text-emerald-400">
+                            ৳{pay.amount?.toLocaleString('en-BD')}
+                          </td>
+                          <td className="py-2.5 text-gray-400 italic max-w-xs truncate">{pay.notes || '—'}</td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+          </GlassCard>
+        )}
 
         {/* Danger Zone: Delete Patient */}
         <div className="pt-4 flex justify-end">
@@ -1086,6 +1349,65 @@ export default function PatientProfilePage() {
             />
           </div>
 
+          {/* Dynamic Custom Fields inside Edit Patient Modal */}
+          {customFieldDefs.length > 0 && (
+            <div className="pt-3 border-t border-white/10 space-y-3">
+              <label className="block text-xs font-bold text-gray-300 uppercase tracking-wide">
+                Custom Fields
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {customFieldDefs.map((def) => {
+                  const value = editCustomFields[def.key] ?? '';
+                  if (def.type === 'select') {
+                    return (
+                      <div key={def.key} className="space-y-1">
+                        <label className="block text-xs text-gray-300">
+                          {def.name} {def.required && <span className="text-red-400">*</span>}
+                        </label>
+                        <select
+                          value={value}
+                          onChange={(e) => setEditCustomFields({ ...editCustomFields, [def.key]: e.target.value })}
+                          className="w-full glass-input rounded-xl px-3 py-2 text-xs text-gray-100 bg-[#0e0e0e]"
+                        >
+                          <option value="">-- Select {def.name} --</option>
+                          {(def.options || []).map((opt: string) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  }
+                  if (def.type === 'checkbox' || def.type === 'boolean') {
+                    return (
+                      <div key={def.key} className="flex items-center gap-2 sm:col-span-2 pt-1">
+                        <input
+                          type="checkbox"
+                          id={`edit_cf_${def.key}`}
+                          checked={Boolean(value)}
+                          onChange={(e) => setEditCustomFields({ ...editCustomFields, [def.key]: e.target.checked })}
+                          className="w-4 h-4 rounded border-white/20 bg-black/40 text-red-600 focus:ring-red-500"
+                        />
+                        <label htmlFor={`edit_cf_${def.key}`} className="text-xs text-gray-200">
+                          {def.name}
+                        </label>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div key={def.key}>
+                      <Input
+                        label={def.name}
+                        type={def.type === 'number' ? 'number' : def.type === 'date' ? 'date' : 'text'}
+                        value={value}
+                        onChange={(e) => setEditCustomFields({ ...editCustomFields, [def.key]: e.target.value })}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-end gap-2.5 pt-2">
             <Button
               type="button"
@@ -1152,6 +1474,153 @@ export default function PatientProfilePage() {
         </div>
       </Modal>
 
+      {/* Quick Record Payment Modal */}
+      <Modal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        title="Record Patient Payment"
+        description={`Record cash or digital deposit for #${patient.patientNumber} - ${patient.fullName}`}
+      >
+        <form onSubmit={handleRecordPayment} className="space-y-4">
+          <div className="p-3.5 rounded-xl bg-red-950/30 border border-red-800/40 text-xs flex items-center justify-between">
+            <span className="text-gray-300">Total Outstanding Balance:</span>
+            <span className="font-mono font-bold text-red-400 text-sm">
+              ৳{(accountBalance?.outstandingDue ?? 0).toLocaleString('en-BD')}
+            </span>
+          </div>
+
+          <Input
+            label="Payment Amount (৳) *"
+            type="number"
+            min="1"
+            placeholder="e.g. 2000"
+            value={paymentAmount}
+            onChange={(e) => setPaymentAmount(e.target.value)}
+            required
+            autoFocus
+          />
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-300 mb-1.5">Apply Payment To</label>
+            <select
+              value={paymentReceiptNumber}
+              onChange={(e) => setPaymentReceiptNumber(e.target.value)}
+              className="w-full glass-input rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-gray-100 bg-[#0e0e0e] border border-white/10"
+            >
+              <option value="auto">Auto Allocate (Oldest Unpaid Invoices First)</option>
+              {receipts
+                .filter((r) => r.status !== 'cancelled' && (r.resultingDue ?? r.dueAmount ?? 0) > 0)
+                .map((r) => (
+                  <option key={r.receiptNumber} value={r.receiptNumber}>
+                    Invoice #{r.receiptNumber} — Remaining Due: ৳{(r.resultingDue ?? r.dueAmount ?? 0).toLocaleString('en-BD')}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-300 mb-1.5">Payment Method</label>
+            <div className="grid grid-cols-3 gap-2">
+              {(['cash', 'bkash', 'nagad', 'card', 'bank_transfer'] as PaymentMethod[]).map((method) => (
+                <button
+                  key={method}
+                  type="button"
+                  onClick={() => setPaymentMethod(method)}
+                  className={`p-2 rounded-xl border text-xs font-bold capitalize transition-all ${
+                    paymentMethod === method
+                      ? 'bg-red-600 border-red-500 text-white shadow-glow-red-sm'
+                      : 'bg-white/[0.03] border-white/10 text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {method.replace('_', ' ')}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <Input
+            label="Transaction ID / Voucher Reference (Optional)"
+            placeholder="e.g. BKASH-89X21"
+            value={paymentTransactionId}
+            onChange={(e) => setPaymentTransactionId(e.target.value)}
+          />
+
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold text-gray-300">Notes (Optional)</label>
+            <textarea
+              rows={2}
+              value={paymentNotes}
+              onChange={(e) => setPaymentNotes(e.target.value)}
+              placeholder="Payment remarks or collector notes..."
+              className="w-full glass-input rounded-xl p-2.5 text-xs text-gray-100 placeholder:text-gray-500 resize-none"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2.5 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPaymentModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              size="sm"
+              isLoading={isSavingPayment}
+              className="gap-1.5"
+            >
+              <CreditCard className="w-3.5 h-3.5" />
+              Record Payment
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Cancel Invoice Confirmation Modal */}
+      <Modal
+        isOpen={Boolean(cancelReceiptTarget)}
+        onClose={() => setCancelReceiptTarget(null)}
+        title="Cancel Invoice Confirmation"
+        description="Cancel this visit invoice and reverse associated dues"
+      >
+        {cancelReceiptTarget && (
+          <div className="space-y-4">
+            <div className="p-4 rounded-xl bg-red-950/60 border border-red-700/50 space-y-2 text-xs">
+              <p className="font-bold text-red-200">
+                Cancel Invoice #{cancelReceiptTarget.receiptNumber}?
+              </p>
+              <p className="text-red-300/80">
+                This invoice will be marked as <strong>CANCELLED</strong>. Its due balance of ৳{(cancelReceiptTarget.resultingDue ?? cancelReceiptTarget.dueAmount ?? 0).toLocaleString('en-BD')} will be removed from the patient&apos;s outstanding account balance. This action cannot be undone.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2.5 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCancelReceiptTarget(null)}
+                disabled={isCancellingReceipt}
+              >
+                Keep Invoice
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleConfirmCancelReceipt}
+                isLoading={isCancellingReceipt}
+                className="bg-red-700 hover:bg-red-600 border-red-500 gap-1.5"
+              >
+                <X className="w-3.5 h-3.5" />
+                Confirm Cancellation
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       {/* Full Canonical Receipt Modal */}
       <Modal
         isOpen={showReceiptModal}
@@ -1167,7 +1636,7 @@ export default function PatientProfilePage() {
               showActions={false}
             />
             <div className="flex justify-between items-center pt-2 border-t border-white/10 no-print">
-              <Link href={`/patients/${patient.patientNumber}/receipt/new`}>
+              <Link href={`/patients/${patient.patientNumber}/receipt/new?edit=${selectedReceipt.receiptNumber}`}>
                 <Button variant="outline" size="sm" className="text-xs gap-1.5">
                   <Edit3 className="w-3.5 h-3.5" />
                   Edit Receipt
