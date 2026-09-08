@@ -45,7 +45,7 @@ export default function PatientProfilePage() {
   const router = useRouter();
   const { showToast } = useToast();
   const editFileInputRef = useRef<HTMLInputElement>(null);
-  const patientNumber = params.patientNumber as string;
+  const patientNumber = (params?.patientNumber as string) || '';
 
   const [patient, setPatient] = useState<Patient | null>(null);
   const [receipts, setReceipts] = useState<Receipt[]>([]);

@@ -22,7 +22,7 @@ import { Receipt } from '@patient-portal/shared';
 
 export default function PublicPatientProfilePage() {
   const params = useParams();
-  const token = params.token as string;
+  const token = (params?.token as string) || '';
 
   const [patient, setPatient] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);

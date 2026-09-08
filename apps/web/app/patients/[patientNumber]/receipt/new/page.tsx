@@ -39,8 +39,8 @@ function ReceiptFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showToast } = useToast();
-  const patientNumber = params.patientNumber as string;
-  const editParam = searchParams.get('edit');
+  const patientNumber = (params?.patientNumber as string) || '';
+  const editParam = searchParams?.get('edit');
   const isEditMode = Boolean(editParam);
 
   // Patient, Balance & Packages State

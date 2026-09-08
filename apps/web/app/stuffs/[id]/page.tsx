@@ -37,7 +37,7 @@ export default function StaffProfilePage() {
   const params = useParams();
   const router = useRouter();
   const { showToast } = useToast();
-  const staffId = params.id as string;
+  const staffId = (params?.id as string) || '';
 
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
