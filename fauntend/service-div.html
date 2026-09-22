@@ -1,0 +1,649 @@
+<div class="elementor-element elementor-element-71f1bbf7 e-con-full e-flex e-con e-parent e-lazyloaded"
+  data-id="71f1bbf7" data-element_type="container" data-e-type="container"
+  data-settings="{&quot;background_background&quot;:&quot;classic&quot;}" bis_skin_checked="1">
+  <div
+    class="elementor-element elementor-element-2b3913f elementor-widget__width-initial elementor-widget elementor-widget-html"
+    data-id="2b3913f" data-element_type="widget" data-e-type="widget" data-widget_type="html.default"
+    bis_skin_checked="1">
+    <style>
+      /* =========================================
+       GLOBAL & VARIABLES (With !important)
+       ========================================= */
+      :root {
+        --tdc-brand-maroon: #cb0437 !important;
+        --tdc-v3-pink: #ef0575 !important;
+        --tdc-border-color: #eaeaea !important;
+      }
+
+      .tdc-dental-section-wrapper {
+        font-family: 'Poppins', 'Roboto', sans-serif !important;
+        width: 100% !important;
+        max-width: 1800px !important;
+        margin: 0 auto !important;
+        background-color: transparent !important;
+      }
+
+      /* =========================================
+       GRID LAYOUT (Desktop: 6, Tab: 3, Mobile: 2)
+       ========================================= */
+      .tdc-services-grid-container {
+        display: grid !important;
+        grid-template-columns: repeat(6, 1fr) !important;
+        gap: 15px !important;
+
+      }
+
+      @media (max-width: 1200px) {
+        .tdc-services-grid-container {
+          grid-template-columns: repeat(3, 1fr) !important;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .tdc-services-grid-container {
+          grid-template-columns: repeat(2, 1fr) !important;
+          gap: 10px !important;
+
+        }
+
+        /* মোবাইলে প্রথম ৬টি সার্ভিস দেখাবে, বাকিগুলো লুকানো থাকবে */
+        .tdc-services-grid-container>a:nth-child(n+7) {
+          display: none !important;
+        }
+      }
+
+      /* =========================================
+       SERVICE CARD STYLING
+       ========================================= */
+      .tdc-service-card-item {
+        display: flex !important;
+        flex-direction: column !important;
+        border: 1px solid var(--tdc-border-color) !important;
+        border-radius: 8px !important;
+        overflow: hidden !important;
+        text-decoration: none !important;
+        background: #ffffff !important;
+        transition: box-shadow 0.3s ease, transform 0.3s ease !important;
+      }
+
+      .tdc-service-card-item:hover {
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1) !important;
+        transform: translateY(-3px) !important;
+      }
+
+      /* =========================================
+       IMAGE HOVER EFFECT (Before & After)
+       ========================================= */
+      .tdc-card-image-box {
+        position: relative !important;
+        width: 100% !important;
+        padding-top: 65% !important;
+        /* Aspect Ratio */
+        overflow: hidden !important;
+        background: #f8f9fa !important;
+      }
+
+      .tdc-card-image-box img {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+        transition: opacity 0.5s ease-in-out !important;
+      }
+
+      .tdc-img-after {
+        opacity: 0 !important;
+      }
+
+      .tdc-service-card-item:hover .tdc-img-after {
+        opacity: 1 !important;
+      }
+
+      .tdc-service-card-item:hover .tdc-img-before {
+        opacity: 0 !important;
+      }
+
+      /* =========================================
+       CONTENT & TYPOGRAPHY
+       ========================================= */
+      .tdc-card-content-body {
+        padding: 15px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        flex-grow: 1 !important;
+      }
+
+      .tdc-service-heading {
+        font-size: 15px !important;
+        font-weight: 700 !important;
+        color: var(--tdc-brand-maroon) !important;
+        margin: 0 0 10px 0 !important;
+        line-height: 1.3 !important;
+        font-family: 'Poppins', sans-serif !important;
+      }
+
+      .tdc-meta-info {
+        font-size: 13px !important;
+        color: #555555 !important;
+        margin-bottom: 10px !important;
+      }
+
+      .tdc-meta-info i {
+        color: var(--tdc-v3-pink) !important;
+        margin-right: 5px !important;
+      }
+
+      .tdc-divider-line {
+        height: 1px !important;
+        background: var(--tdc-border-color) !important;
+        margin: 10px 0 !important;
+      }
+
+      /* =========================================
+       PRICE SECTION
+       ========================================= */
+      .tdc-price-box {
+        margin-top: auto !important;
+      }
+
+      .tdc-price-label {
+        color: #777777 !important;
+        font-size: 11px !important;
+        font-weight: 600 !important;
+        text-transform: uppercase !important;
+        display: block !important;
+        line-height: 1.2 !important;
+      }
+
+      .tdc-price-value {
+        color: #000000 !important;
+        font-weight: 700 !important;
+        font-size: 15px !important;
+        display: block !important;
+        margin-top: 2px !important;
+        line-height: 1.2 !important;
+      }
+
+      /* =========================================
+       CARD CTA BUTTON ("Book Now")
+       ========================================= */
+      .tdc-card-cta-btn {
+        display: block !important;
+        text-align: center !important;
+        background-color: var(--tdc-brand-maroon) !important;
+        color: #ffffff !important;
+        padding: 8px 10px !important;
+        border-radius: 5px !important;
+        font-weight: 600 !important;
+        font-size: 13px !important;
+        margin-top: 15px !important;
+        transition: background-color 0.3s ease !important;
+        border: none !important;
+      }
+
+      .tdc-service-card-item:hover .tdc-card-cta-btn {
+        background-color: var(--tdc-v3-pink) !important;
+        color: #ffffff !important;
+      }
+
+      /* =========================================
+       VIEW MORE BUTTON (Bottom Master Button)
+       ========================================= */
+      .tdc-button-wrapper {
+        text-align: center !important;
+        margin-top: 40px !important;
+        margin-bottom: 20px !important;
+      }
+
+      .tdc-view-more-button {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background-color: var(--tdc-brand-maroon) !important;
+        color: #ffffff !important;
+        padding: 12px 35px !important;
+        border-radius: 50px !important;
+        font-weight: 700 !important;
+        font-family: 'Roboto', sans-serif !important;
+        text-decoration: none !important;
+        border: 2px solid var(--tdc-brand-maroon) !important;
+        box-shadow: 0 5px 15px rgba(203, 4, 55, 0.3) !important;
+        transition: all 0.3s ease-in-out !important;
+      }
+
+      .tdc-view-more-button:hover {
+        background-color: var(--tdc-v3-pink) !important;
+        border-color: var(--tdc-v3-pink) !important;
+        color: #ffffff !important;
+        transform: translateY(-3px) !important;
+        box-shadow: 0 8px 20px rgba(239, 5, 117, 0.4) !important;
+      }
+
+      .tdc-view-more-button .btn-text {
+        margin-right: 10px !important;
+      }
+
+      .tdc-view-more-button svg {
+        stroke: #ffffff !important;
+        transition: transform 0.3s ease !important;
+      }
+
+      .tdc-view-more-button:hover svg {
+        transform: translateX(5px) !important;
+      }
+    </style>
+
+    <div class="tdc-dental-section-wrapper" bis_skin_checked="1">
+
+      <div class="tdc-services-grid-container" bis_skin_checked="1">
+
+        <a href="https://techdentalcare.com/service/teeth-gap-filling-cost-bd/" class="tdc-service-card-item">
+          <div class="tdc-card-image-box" bis_skin_checked="1">
+            <img width="1024" height="731" decoding="async" class="tdc-img-before entered lazyloaded"
+              src="img/service-gap-filling-before.webp"
+              alt="Best teeth gap filling in Dhaka"
+              data-lazy-src="img/service-gap-filling-before.webp"
+              data-ll-status="loaded"><noscript><img width="1024" height="731" decoding="async" class="tdc-img-before"
+                src="img/service-gap-filling-before.webp"
+                alt="Best teeth gap filling in Dhaka" loading="lazy"></noscript>
+            <img width="1024" height="731" decoding="async" class="tdc-img-after entered lazyloaded"
+              src="img/service-gap-filling-after.webp"
+              alt="Teeth gap filling after treatment"
+              data-lazy-src="img/service-gap-filling-after.webp"
+              data-ll-status="loaded"><noscript><img width="1024" height="731" decoding="async" class="tdc-img-after"
+                src="img/service-gap-filling-after.webp"
+                alt="Teeth gap filling after treatment" loading="lazy"></noscript>
+          </div>
+          <div class="tdc-card-content-body" bis_skin_checked="1">
+            <h2 class="tdc-service-heading">Cosmetic Teeth Gap Filling</h2>
+            <div class="tdc-meta-info" bis_skin_checked="1">
+              <span><i class="fa-regular fa-clock"></i> 40 Mins</span>
+            </div>
+            <div class="tdc-divider-line" bis_skin_checked="1"></div>
+            <div class="tdc-price-box" bis_skin_checked="1">
+              <span class="tdc-price-label">Starting at</span>
+              <span class="tdc-price-value">5,000 ৳</span>
+            </div>
+            <span class="tdc-card-cta-btn">Book Now</span>
+          </div>
+        </a>
+
+        <a href="https://techdentalcare.com/service/tooth-root-canal-cost-bd/" class="tdc-service-card-item">
+          <div class="tdc-card-image-box" bis_skin_checked="1">
+            <img width="1024" height="731" decoding="async" class="tdc-img-before entered lazyloaded"
+              src="img/service-root-canal-before.webp"
+              alt="Painless root canal treatment in Dhaka"
+              data-lazy-src="img/service-root-canal-before.webp"
+              data-ll-status="loaded"><noscript><img width="1024" height="731" decoding="async" class="tdc-img-before"
+                src="img/service-root-canal-before.webp"
+                alt="Painless root canal treatment in Dhaka" loading="lazy"></noscript>
+            <img width="1024" height="731" decoding="async" class="tdc-img-after entered lazyloaded"
+              src="img/service-root-canal-after.webp"
+              alt="Root canal after treatment"
+              data-lazy-src="img/service-root-canal-after.webp"
+              data-ll-status="loaded"><noscript><img width="1024" height="731" decoding="async" class="tdc-img-after"
+                src="img/service-root-canal-after.webp"
+                alt="Root canal after treatment" loading="lazy"></noscript>
+          </div>
+          <div class="tdc-card-content-body" bis_skin_checked="1">
+            <h2 class="tdc-service-heading">Painless Root Canal Treatment</h2>
+            <div class="tdc-meta-info" bis_skin_checked="1">
+              <span><i class="fa-regular fa-clock"></i> 45 Mins</span>
+            </div>
+            <div class="tdc-divider-line" bis_skin_checked="1"></div>
+            <div class="tdc-price-box" bis_skin_checked="1">
+              <span class="tdc-price-label">Starting at</span>
+              <span class="tdc-price-value">৳8,000</span>
+            </div>
+            <span class="tdc-card-cta-btn">Book Now</span>
+          </div>
+        </a>
+
+        <a href="https://techdentalcare.com/service/tooth-root-canal-cost-bd/" class="tdc-service-card-item">
+          <div class="tdc-card-image-box" bis_skin_checked="1">
+            <img width="1024" height="731" decoding="async" class="tdc-img-before entered lazyloaded"
+              src="img/service-crown-before.webp"
+              alt="Affordable dental crown in Dhaka"
+              data-lazy-src="img/service-crown-before.webp"
+              data-ll-status="loaded"><noscript><img width="1024" height="731" decoding="async" class="tdc-img-before"
+                src="img/service-crown-before.webp"
+                alt="Affordable dental crown in Dhaka" loading="lazy"></noscript>
+            <img width="1024" height="731" decoding="async" class="tdc-img-after entered lazyloaded"
+              src="img/service-crown-after.webp"
+              alt="Dental crown after placement"
+              data-lazy-src="img/service-crown-after.webp"
+              data-ll-status="loaded"><noscript><img width="1024" height="731" decoding="async" class="tdc-img-after"
+                src="img/service-crown-after.webp"
+                alt="Dental crown after placement" loading="lazy"></noscript>
+          </div>
+          <div class="tdc-card-content-body" bis_skin_checked="1">
+            <h2 class="tdc-service-heading">Ceramic Dental Crown</h2>
+            <div class="tdc-meta-info" bis_skin_checked="1">
+              <span><i class="fa-regular fa-clock"></i> 45 Mins</span>
+            </div>
+            <div class="tdc-divider-line" bis_skin_checked="1"></div>
+            <div class="tdc-price-box" bis_skin_checked="1">
+              <span class="tdc-price-label">Starting at</span>
+              <span class="tdc-price-value">৳8,000</span>
+            </div>
+            <span class="tdc-card-cta-btn">Book Now</span>
+          </div>
+        </a>
+
+        <a href="https://techdentalcare.com/service/teeth-scaling-polishing-price-bd/" class="tdc-service-card-item">
+          <div class="tdc-card-image-box" bis_skin_checked="1">
+            <img width="1024" height="731" decoding="async" class="tdc-img-before entered lazyloaded"
+              src="img/service-scaling-before.webp"
+              alt="Best teeth scaling clinic in Bangladesh"
+              data-lazy-src="img/service-scaling-before.webp"
+              data-ll-status="loaded"><noscript><img width="1024" height="731" decoding="async" class="tdc-img-before"
+                src="img/service-scaling-before.webp"
+                alt="Best teeth scaling clinic in Bangladesh" loading="lazy"></noscript>
+            <img width="1024" height="731" decoding="async" class="tdc-img-after entered lazyloaded"
+              src="img/service-scaling-after.webp"
+              alt="Teeth after scaling"
+              data-lazy-src="img/service-scaling-after.webp"
+              data-ll-status="loaded"><noscript><img width="1024" height="731" decoding="async" class="tdc-img-after"
+                src="img/service-scaling-after.webp"
+                alt="Teeth after scaling" loading="lazy"></noscript>
+          </div>
+          <div class="tdc-card-content-body" bis_skin_checked="1">
+            <h2 class="tdc-service-heading">Professional Teeth Scaling</h2>
+            <div class="tdc-meta-info" bis_skin_checked="1">
+              <span><i class="fa-solid fa-soap"></i> Hygiene</span>
+            </div>
+            <div class="tdc-divider-line" bis_skin_checked="1"></div>
+            <div class="tdc-price-box" bis_skin_checked="1">
+              <span class="tdc-price-label">Starting at</span>
+              <span class="tdc-price-value">৳1,990</span>
+            </div>
+            <span class="tdc-card-cta-btn">Book Now</span>
+          </div>
+        </a>
+
+        <a href="https://techdentalcare.com/service/teeth-scaling-polishing-price-bd/" class="tdc-service-card-item">
+          <div class="tdc-card-image-box" bis_skin_checked="1">
+            <img width="1024" height="731" decoding="async" class="tdc-img-before entered lazyloaded"
+              src="img/service-filling-after.webp"
+              alt="Tooth filling service near me"
+              data-lazy-src="img/service-filling-after.webp"
+              data-ll-status="loaded"><noscript><img width="1024" height="731" decoding="async" class="tdc-img-before"
+                src="img/service-filling-after.webp"
+                alt="Tooth filling service near me" loading="lazy"></noscript>
+            <img width="1024" height="731" decoding="async" class="tdc-img-after entered lazyloaded"
+              src="img/service-filling-before.webp"
+              alt="Tooth filling after treatment"
+              data-lazy-src="img/service-filling-before.webp"
+              data-ll-status="loaded"><noscript><img width="1024" height="731" decoding="async" class="tdc-img-after"
+                src="img/service-filling-before.webp"
+                alt="Tooth filling after treatment" loading="lazy"></noscript>
+          </div>
+          <div class="tdc-card-content-body" bis_skin_checked="1">
+            <h2 class="tdc-service-heading">Advanced Nano-Composite Filling</h2>
+            <div class="tdc-meta-info" bis_skin_checked="1">
+              <span><i class="fa-solid fa-tooth"></i> Restoration</span>
+            </div>
+            <div class="tdc-divider-line" bis_skin_checked="1"></div>
+            <div class="tdc-price-box" bis_skin_checked="1">
+              <span class="tdc-price-label">Starting at</span>
+              <span class="tdc-price-value">৳3,000</span>
+            </div>
+            <span class="tdc-card-cta-btn">Book Now</span>
+          </div>
+        </a>
+
+        <a href="https://techdentalcare.com/service/orthodontic-treatment-cost-bangladesh/"
+          class="tdc-service-card-item">
+          <div class="tdc-card-image-box" bis_skin_checked="1">
+            <img width="1024" height="731" decoding="async" class="tdc-img-before entered lazyloaded"
+              src="img/service-braces-before.webp"
+              alt="Affordable teeth braces cost in Dhaka"
+              data-lazy-src="img/service-braces-before.webp"
+              data-ll-status="loaded"><noscript><img width="1024" height="731" decoding="async" class="tdc-img-before"
+                src="img/service-braces-before.webp"
+                alt="Affordable teeth braces cost in Dhaka" loading="lazy"></noscript>
+            <img width="1024" height="731" decoding="async" class="tdc-img-after entered lazyloaded"
+              src="img/service-braces-after.webp"
+              alt="Teeth braces treatment"
+              data-lazy-src="img/service-braces-after.webp"
+              data-ll-status="loaded"><noscript><img width="1024" height="731" decoding="async" class="tdc-img-after"
+                src="img/service-braces-after.webp"
+                alt="Teeth braces treatment" loading="lazy"></noscript>
+          </div>
+          <div class="tdc-card-content-body" bis_skin_checked="1">
+            <h2 class="tdc-service-heading">Metal &amp; Ceramic Teeth Braces</h2>
+            <div class="tdc-meta-info" bis_skin_checked="1">
+              <span><i class="fa-regular fa-clock"></i> Monthly Installment</span>
+            </div>
+            <div class="tdc-divider-line" bis_skin_checked="1"></div>
+            <div class="tdc-price-box" bis_skin_checked="1">
+              <span class="tdc-price-label">Starting at</span>
+              <span class="tdc-price-value">৳50,000</span>
+            </div>
+            <span class="tdc-card-cta-btn">Book Now</span>
+          </div>
+        </a>
+
+        <a href="https://techdentalcare.com/service/dental-implants-cost-in-bangladesh/" class="tdc-service-card-item">
+          <div class="tdc-card-image-box" bis_skin_checked="1">
+            <img width="1024" height="731" decoding="async" class="tdc-img-before entered lazyloaded"
+              alt="Best dental implants in Bangladesh"
+              data-lazy-src="img/service-implants-before.webp"
+              src="img/service-implants-before.webp"
+              data-ll-status="loaded"><noscript><img width="1024" height="731" decoding="async" class="tdc-img-before"
+                src="img/service-implants-before.webp"
+                alt="Best dental implants in Bangladesh" loading="lazy"></noscript>
+            <img width="1024" height="731" decoding="async" class="tdc-img-after entered lazyloaded"
+              alt="Dental implant success"
+              data-lazy-src="img/service-implants-after.webp"
+              src="img/service-implants-after.webp"
+              data-ll-status="loaded"><noscript><img width="1024" height="731" decoding="async" class="tdc-img-after"
+                src="img/service-implants-after.webp"
+                alt="Dental implant success" loading="lazy"></noscript>
+          </div>
+          <div class="tdc-card-content-body" bis_skin_checked="1">
+            <h2 class="tdc-service-heading">Permanent Dental Implants</h2>
+            <div class="tdc-meta-info" bis_skin_checked="1">
+              <span><i class="fa-regular fa-clock"></i> 1 Hour</span>
+            </div>
+            <div class="tdc-divider-line" bis_skin_checked="1"></div>
+            <div class="tdc-price-box" bis_skin_checked="1">
+              <span class="tdc-price-label">Starting at</span>
+              <span class="tdc-price-value">৳60,000 – ৳80,000</span>
+            </div>
+            <span class="tdc-card-cta-btn">Book Now</span>
+          </div>
+        </a>
+
+        <a href="https://techdentalcare.com/service/direct-composite-veneers-teeth/" class="tdc-service-card-item">
+          <div class="tdc-card-image-box" bis_skin_checked="1">
+            <img width="1024" height="731" decoding="async" class="tdc-img-before entered lazyloaded"
+              alt="Direct composite veneers teeth Dhaka"
+              data-lazy-src="img/service-veneers-before.webp"
+              src="img/service-veneers-before.webp"
+              data-ll-status="loaded"><noscript><img width="1024" height="731" decoding="async" class="tdc-img-before"
+                src="img/service-veneers-before.webp"
+                alt="Direct composite veneers teeth Dhaka" loading="lazy"></noscript>
+            <img width="1024" height="731" decoding="async" class="tdc-img-after entered lazyloaded"
+              alt="Veneers smile design"
+              data-lazy-src="img/service-veneers-after.webp"
+              src="img/service-veneers-after.webp"
+              data-ll-status="loaded"><noscript><img width="1024" height="731" decoding="async" class="tdc-img-after"
+                src="img/service-veneers-after.webp"
+                alt="Veneers smile design" loading="lazy"></noscript>
+          </div>
+          <div class="tdc-card-content-body" bis_skin_checked="1">
+            <h2 class="tdc-service-heading">Direct Composite Veneers</h2>
+            <div class="tdc-meta-info" bis_skin_checked="1">
+              <span><i class="fa-solid fa-gem"></i> Porcelain</span>
+            </div>
+            <div class="tdc-divider-line" bis_skin_checked="1"></div>
+            <div class="tdc-price-box" bis_skin_checked="1">
+              <span class="tdc-price-label">Per Tooth</span>
+              <span class="tdc-price-value">৳5,000</span>
+            </div>
+            <span class="tdc-card-cta-btn">Book Now</span>
+          </div>
+        </a>
+
+        <a href="https://techdentalcare.com/service/invisalign-clear-aligners-usa-brand/" class="tdc-service-card-item">
+          <div class="tdc-card-image-box" bis_skin_checked="1">
+            <img width="1024" height="731" decoding="async" class="tdc-img-before entered lazyloaded"
+              alt="Invisalign clear aligners price in BD"
+              data-lazy-src="img/service-invisalign-before.webp"
+              src="img/service-invisalign-before.webp"
+              data-ll-status="loaded"><noscript><img width="1024" height="731" decoding="async" class="tdc-img-before"
+                src="img/service-invisalign-before.webp"
+                alt="Invisalign clear aligners price in BD" loading="lazy"></noscript>
+            <img width="1024" height="731" decoding="async" class="tdc-img-after entered lazyloaded"
+              alt="Invisalign treatment"
+              data-lazy-src="img/service-invisalign-after.webp"
+              src="img/service-invisalign-after.webp"
+              data-ll-status="loaded"><noscript><img width="1024" height="731" decoding="async" class="tdc-img-after"
+                src="img/service-invisalign-after.webp"
+                alt="Invisalign treatment" loading="lazy"></noscript>
+          </div>
+          <div class="tdc-card-content-body" bis_skin_checked="1">
+            <h2 class="tdc-service-heading">Invisalign Clear Aligners</h2>
+            <div class="tdc-meta-info" bis_skin_checked="1">
+              <span><i class="fa-solid fa-eye-slash"></i> Invisible</span>
+            </div>
+            <div class="tdc-divider-line" bis_skin_checked="1"></div>
+            <div class="tdc-price-box" bis_skin_checked="1">
+              <span class="tdc-price-label">Full Course</span>
+              <span class="tdc-price-value">৳180,000</span>
+            </div>
+            <span class="tdc-card-cta-btn">Book Now</span>
+          </div>
+        </a>
+
+        <a href="#" class="tdc-service-card-item">
+          <div class="tdc-card-image-box" bis_skin_checked="1">
+            <img width="1024" height="731" decoding="async" class="tdc-img-before entered lazyloaded"
+              alt="Digital smile design clinic Dhaka"
+              data-lazy-src="img/service-smile-design-before.webp"
+              src="img/service-smile-design-before.webp"
+              data-ll-status="loaded"><noscript><img width="1024" height="731" decoding="async" class="tdc-img-before"
+                src="img/service-smile-design-before.webp"
+                alt="Digital smile design clinic Dhaka" loading="lazy"></noscript>
+            <img width="1024" height="731" decoding="async" class="tdc-img-after entered lazyloaded"
+              alt="3D smile design result"
+              data-lazy-src="img/service-smile-design-after.webp"
+              src="img/service-smile-design-after.webp"
+              data-ll-status="loaded"><noscript><img width="1024" height="731" decoding="async" class="tdc-img-after"
+                src="img/service-smile-design-after.webp"
+                alt="3D smile design result" loading="lazy"></noscript>
+          </div>
+          <div class="tdc-card-content-body" bis_skin_checked="1">
+            <h2 class="tdc-service-heading">Digital Smile Design</h2>
+            <div class="tdc-meta-info" bis_skin_checked="1">
+              <span><i class="fa-solid fa-camera"></i> 3D Scan</span>
+            </div>
+            <div class="tdc-divider-line" bis_skin_checked="1"></div>
+            <div class="tdc-price-box" bis_skin_checked="1">
+              <span class="tdc-price-label">Starting at</span>
+              <span class="tdc-price-value">৳20,000</span>
+            </div>
+            <span class="tdc-card-cta-btn">Book Now</span>
+          </div>
+        </a>
+
+        <a href="https://techdentalcare.com/service/tooth-whitening-cost-bd-en/" class="tdc-service-card-item">
+          <div class="tdc-card-image-box" bis_skin_checked="1">
+            <img width="1024" height="731" decoding="async" class="tdc-img-before entered lazyloaded"
+              alt="Teeth whitening price in Dhaka"
+              data-lazy-src="img/service-whitening-before.webp"
+              src="img/service-whitening-before.webp"
+              data-ll-status="loaded"><noscript><img width="1024" height="731" decoding="async" class="tdc-img-before"
+                src="img/service-whitening-before.webp"
+                alt="Teeth whitening price in Dhaka" loading="lazy"></noscript>
+            <img width="1024" height="731" decoding="async" class="tdc-img-after entered lazyloaded"
+              alt="Teeth whitening before and after"
+              data-lazy-src="img/service-whitening-after.webp"
+              src="img/service-whitening-after.webp"
+              data-ll-status="loaded"><noscript><img width="1024" height="731" decoding="async" class="tdc-img-after"
+                src="img/service-whitening-after.webp"
+                alt="Teeth whitening before and after" loading="lazy"></noscript>
+          </div>
+          <div class="tdc-card-content-body" bis_skin_checked="1">
+            <h2 class="tdc-service-heading">Laser Teeth Whitening</h2>
+            <div class="tdc-meta-info" bis_skin_checked="1">
+              <span><i class="fa-regular fa-clock"></i> 30 Mins</span>
+            </div>
+            <div class="tdc-divider-line" bis_skin_checked="1"></div>
+            <div class="tdc-price-box" bis_skin_checked="1">
+              <span class="tdc-price-label">Starting at</span>
+              <span class="tdc-price-value">৳15,000</span>
+            </div>
+            <span class="tdc-card-cta-btn">Book Now</span>
+          </div>
+        </a>
+
+        <a href="https://techdentalcare.com/service/doctor-consultation/" class="tdc-service-card-item">
+          <div class="tdc-card-image-box" bis_skin_checked="1">
+            <img width="1024" height="731" decoding="async" class="tdc-img-before entered lazyloaded"
+              alt="Best pediatric dentist for kids in Dhaka"
+              data-lazy-src="img/service-pediatric-before.webp"
+              src="img/service-pediatric-before.webp"
+              data-ll-status="loaded"><noscript><img width="1024" height="731" decoding="async" class="tdc-img-before"
+                src="img/service-pediatric-before.webp"
+                alt="Best pediatric dentist for kids in Dhaka" loading="lazy"></noscript>
+            <img width="1024" height="731" decoding="async" class="tdc-img-after entered lazyloaded"
+              alt="Children dentistry clinic"
+              data-lazy-src="img/service-pediatric-after.webp"
+              src="img/service-pediatric-after.webp"
+              data-ll-status="loaded"><noscript><img width="1024" height="731" decoding="async" class="tdc-img-after"
+                src="img/service-pediatric-after.webp"
+                alt="Children dentistry clinic" loading="lazy"></noscript>
+          </div>
+          <div class="tdc-card-content-body" bis_skin_checked="1">
+            <h2 class="tdc-service-heading">Pediatric &amp; Children Dentistry</h2>
+            <div class="tdc-meta-info" bis_skin_checked="1">
+              <span><i class="fa-solid fa-baby"></i> Gentle Care</span>
+            </div>
+            <div class="tdc-divider-line" bis_skin_checked="1"></div>
+            <div class="tdc-price-box" bis_skin_checked="1">
+              <span class="tdc-price-label">Starting at</span>
+              <span class="tdc-price-value">৳1,000</span>
+            </div>
+            <span class="tdc-card-cta-btn">Book Now</span>
+          </div>
+        </a>
+
+      </div>
+
+      <div class="tdc-button-wrapper" bis_skin_checked="1">
+        <a href="https://techdentalcare.com/our-services/" class="tdc-view-more-button">
+          <span class="btn-text">View All Treatments</span>
+          <span class="btn-arrow">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14"></path>
+              <path d="m12 5 7 7-7 7"></path>
+            </svg>
+          </span>
+        </a>
+      </div>
+
+    </div>
+  </div>
+  <div
+    class="elementor-element elementor-element-41595b61 elementor-widget__width-initial elementor-widget elementor-widget-text-editor"
+    data-id="41595b61" data-element_type="widget" data-e-type="widget" data-widget_type="text-editor.default"
+    bis_skin_checked="1">
+    <p>Tech Dental Care provides a full range of modern, painless dental treatments at our state-of-the-art clinics
+      across Dhaka. As Bangladesh’s <b data-path-to-node="4,0" data-index-in-node="140">largest dental chain</b>, we
+      offer expert guidance and advanced technology for patients of all ages, ensuring you receive the best care for
+      your smile. From root canals and braces to dental implants and scaling, we are your trusted <b
+        data-path-to-node="4,0" data-index-in-node="368">dental clinic in Dhaka</b> for comprehensive oral health.</p>
+  </div>
+  <div
+    class="elementor-element elementor-element-69ed2345 elementor-widget__width-initial elementor-widget elementor-widget-heading"
+    data-id="69ed2345" data-element_type="widget" data-e-type="widget" data-widget_type="heading.default"
+    bis_skin_checked="1">
+    <h2 class="elementor-heading-title elementor-size-default">Modern &amp; Painless Dental Treatments in <span
+        style="color: #AF003E">dentist near me</span></h2>
+  </div>
+</div>

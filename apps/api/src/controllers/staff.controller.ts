@@ -140,3 +140,43 @@ export const recordSalaryPayment = async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, message: error.message || 'Failed to record salary payment' });
   }
 };
+
+export const deleteSalaryPayment = async (req: Request, res: Response) => {
+  try {
+    const paymentId = req.params.paymentId || req.params.id;
+    const staffId = req.params.staffId || req.body.staffId;
+    const result = await staffService.deleteSalaryPayment(paymentId, staffId);
+    if (!result.success) {
+      return res.status(404).json({ success: false, message: result.message });
+    }
+    return res.status(200).json({ success: true, message: result.message, data: result.data });
+  } catch (error: any) {
+    logger.error('Error deleting salary payment', { error });
+    return res.status(500).json({ success: false, message: error.message || 'Failed to revert salary payment' });
+  }
+};
+
+export const unpayMonth = async (req: Request, res: Response) => {
+  try {
+    const staffId = req.params.id || req.params.staffId || req.body.staffId;
+    const monthKey = req.params.monthKey || req.query.monthKey || req.body.monthKey || req.body.month;
+
+    if (!staffId || !monthKey) {
+      return res.status(400).json({
+        success: false,
+        message: 'Staff ID and target monthKey (YYYY-MM) are required to mark month as unpaid.'
+      });
+    }
+
+    const result = await staffService.unpayMonth(staffId, String(monthKey));
+    return res.status(200).json({
+      success: true,
+      message: result.message,
+      deletedCount: result.deletedCount
+    });
+  } catch (error: any) {
+    logger.error('Error marking month as unpaid', { error });
+    return res.status(500).json({ success: false, message: error.message || 'Failed to mark month as unpaid' });
+  }
+};
+

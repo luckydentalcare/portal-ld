@@ -16,6 +16,10 @@ import clinicSettingsRoutes from './routes/clinic-settings.routes';
 import accessoryRoutes from './routes/accessory.routes';
 import staffRoutes from './routes/staff.routes';
 import externalSmsRoutes from './routes/external-sms.routes';
+import siteContentRoutes from './routes/site-content.routes';
+import priceEstimatorRoutes from './routes/price-estimator.routes';
+import appointmentOptionsRoutes from './routes/appointment-options.routes';
+import backupRoutes from './routes/backup.routes';
 import { errorHandler } from './middleware/error.middleware';
 
 const app = express();
@@ -94,8 +98,12 @@ app.use('/api', customFieldRoutes);
 app.use('/api', smsRoutes);
 app.use('/api', clinicSettingsRoutes);
 app.use('/api', accessoryRoutes);
+app.use('/api', siteContentRoutes);
+app.use('/api', priceEstimatorRoutes);
+app.use('/api', appointmentOptionsRoutes);
 app.use('/api/stuffs', staffRoutes);
 app.use('/api/staff', staffRoutes);
+app.use('/api/backup', backupRoutes);
 
 // Error Handler
 app.use(errorHandler);

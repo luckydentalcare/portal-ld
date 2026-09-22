@@ -267,18 +267,19 @@ export default function StaffDirectoryPage() {
     }
   };
 
-  // Delete / Deactivate Staff Member
+  // Delete Staff Member with clean state update
   const handleConfirmDelete = async () => {
     if (!deleteTarget || isDeleting) return;
+    const id = deleteTarget.id || (deleteTarget as any)._id;
     setIsDeleting(true);
     try {
-      const id = deleteTarget.id || (deleteTarget as any)._id;
       const res = await apiFetch<any>(`/stuffs/${id}`, {
         method: 'DELETE'
       });
 
       if (res.success) {
-        showToast((res as any).message || 'Staff member updated successfully', 'success');
+        showToast((res as any).message || 'Staff member deleted successfully', 'success');
+        setStaffList((prev) => prev.filter((s) => (s.id || (s as any)._id) !== id));
         setDeleteTarget(null);
         fetchData();
       } else {
@@ -362,7 +363,7 @@ export default function StaffDirectoryPage() {
               <DollarSign className="w-4 h-4 text-red-400" />
             </div>
             <p className="text-2xl font-black font-mono text-white">
-              ৳{(stats?.thisMonthExpectedPayroll ?? 0).toLocaleString('en-BD')}
+              ৳{(stats?.thisMonthExpectedPayroll ?? stats?.thisMonthPayroll ?? 0).toLocaleString('en-BD')}
             </p>
             <p className="text-[11px] text-gray-500">Based on active salaries</p>
           </GlassCard>
@@ -373,7 +374,7 @@ export default function StaffDirectoryPage() {
               <CheckCircle className="w-4 h-4 text-emerald-400" />
             </div>
             <p className="text-2xl font-black font-mono text-emerald-400">
-              ৳{(stats?.thisMonthDisbursedPayroll ?? 0).toLocaleString('en-BD')}
+              ৳{(stats?.thisMonthDisbursedPayroll ?? stats?.paidThisMonth ?? 0).toLocaleString('en-BD')}
             </p>
             <p className="text-[11px] text-gray-500">Paid to date</p>
           </GlassCard>
@@ -384,7 +385,11 @@ export default function StaffDirectoryPage() {
               <AlertCircle className="w-4 h-4 text-red-400" />
             </div>
             <p className="text-2xl font-black font-mono text-red-400">
-              ৳{Math.max(0, (stats?.thisMonthExpectedPayroll ?? 0) - (stats?.thisMonthDisbursedPayroll ?? 0)).toLocaleString('en-BD')}
+              ৳{Math.max(
+                0,
+                (stats?.thisMonthExpectedPayroll ?? stats?.thisMonthPayroll ?? 0) -
+                  (stats?.thisMonthDisbursedPayroll ?? stats?.paidThisMonth ?? 0)
+              ).toLocaleString('en-BD')}
             </p>
             <p className="text-[11px] text-red-300/70">Unpaid salary balance</p>
           </GlassCard>
@@ -455,8 +460,8 @@ export default function StaffDirectoryPage() {
                   <tr className="border-b border-white/10 text-gray-400 font-semibold uppercase tracking-wider">
                     <th className="pb-3">Staff Name & Contact</th>
                     <th className="pb-3">Clinical Role</th>
-                    <th className="pb-3 text-right">Monthly Base Salary</th>
-                    <th className="pb-3">Join Date</th>
+                    <th className="pb-3 text-right pr-6 min-w-[150px] whitespace-nowrap">Monthly Base Salary</th>
+                    <th className="pb-3 pl-3 min-w-[120px] whitespace-nowrap">Join Date</th>
                     <th className="pb-3 text-center">Status</th>
                     <th className="pb-3 text-right">Actions</th>
                   </tr>
@@ -488,10 +493,10 @@ export default function StaffDirectoryPage() {
                             {roleLabel}
                           </span>
                         </td>
-                        <td className="py-3 text-right font-mono font-bold text-gray-100">
+                        <td className="py-3 text-right pr-6 font-mono font-bold text-gray-100 whitespace-nowrap">
                           ৳{(st.baseSalary ?? st.monthlySalary ?? 0).toLocaleString('en-BD')}
                         </td>
-                        <td className="py-3 text-gray-400">
+                        <td className="py-3 pl-3 text-gray-400 whitespace-nowrap">
                           {st.joinDate ? new Date(st.joinDate).toLocaleDateString('en-GB') : '—'}
                         </td>
                         <td className="py-3 text-center">
@@ -805,19 +810,33 @@ export default function StaffDirectoryPage() {
         </form>
       </Modal>
 
-      {/* Delete / Deactivate Confirmation Modal */}
+      {/* Delete Staff Member Confirmation Modal */}
       <Modal
         isOpen={Boolean(deleteTarget)}
-        onClose={() => setDeleteTarget(null)}
-        title="Remove Staff Member"
-        description="Confirm deletion or deactivation of this staff member."
+        onClose={() => {
+          if (!isDeleting) setDeleteTarget(null);
+        }}
+        title="Delete Staff Member?"
+        description="Confirm permanent deletion of staff member from all clinic records"
       >
         <div className="space-y-4 text-xs">
-          <div className="p-3.5 rounded-xl bg-red-950/30 border border-red-800/40 text-gray-300">
-            <p className="font-bold text-white mb-1">Notice regarding payroll integrity:</p>
-            <p>
-              If <span className="text-red-400 font-semibold">{deleteTarget?.name}</span> has historical salary payout records, their profile will be safely deactivated (marked inactive) rather than wiped, preserving financial and tax reports.
-            </p>
+          <div className="p-4 rounded-xl bg-red-950/40 border border-red-900/60 flex items-start gap-3">
+            <Trash2 className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+            <div className="space-y-1.5 flex-1">
+              <p className="text-sm font-semibold text-white">
+                Delete this staff member?
+              </p>
+              <div className="text-xs text-gray-200">
+                <span className="font-extrabold text-white text-sm">{deleteTarget?.name}</span>
+                <div className="text-gray-400 mt-0.5">
+                  <span className="font-semibold text-gray-300">Clinical Role:</span>{' '}
+                  <span className="text-red-400 font-medium">{deleteTarget?.clinicalRole || deleteTarget?.role || 'Dental Staff'}</span>
+                </div>
+              </div>
+              <p className="text-[11px] text-gray-400 pt-1">
+                This action will remove the staff member from the active staff directory, dropdown selectors, and current payroll calculations.
+              </p>
+            </div>
           </div>
 
           <div className="flex justify-end gap-2.5 pt-2 border-t border-white/10">
@@ -825,6 +844,7 @@ export default function StaffDirectoryPage() {
               type="button"
               variant="outline"
               size="sm"
+              disabled={isDeleting}
               onClick={() => setDeleteTarget(null)}
             >
               Cancel
@@ -836,10 +856,10 @@ export default function StaffDirectoryPage() {
               isLoading={isDeleting}
               disabled={isDeleting}
               onClick={handleConfirmDelete}
-              className="bg-red-700 hover:bg-red-800 text-white gap-1.5"
+              className="bg-red-600 hover:bg-red-700 text-white gap-1.5 shadow-glow-red-sm"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              Confirm Removal
+              {isDeleting ? 'Deleting...' : 'Delete Staff'}
             </Button>
           </div>
         </div>

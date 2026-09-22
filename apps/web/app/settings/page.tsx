@@ -16,7 +16,11 @@ import {
   Check,
   Edit3,
   Power,
-  AlertTriangle
+  AlertTriangle,
+  Download,
+  Upload,
+  DatabaseBackup,
+  ShieldCheck
 } from 'lucide-react';
 import DashboardLayout from '@/app/dashboard/layout';
 import { GlassCard } from '@/components/ui/glass-card';
@@ -65,6 +69,63 @@ export default function SettingsPage() {
   // Delete Confirmation State
   const [deletingField, setDeletingField] = useState<CustomFieldDefinition | null>(null);
   const [isDeletingField, setIsDeletingField] = useState(false);
+
+  // Backup / Restore State
+  const [isExporting, setIsExporting] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [restoreFile, setRestoreFile] = useState<File | null>(null);
+  const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
+
+  // Export full database backup
+  const handleExportBackup = async () => {
+    setIsExporting(true);
+    try {
+      const res = await apiFetch<Record<string, unknown>>('/backup/export');
+      if (res.success && res.data) {
+        const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const now = new Date();
+        const stamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+        a.href = url;
+        a.download = `luckydental_backup_${stamp}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('Backup downloaded successfully', 'success');
+      } else {
+        showToast(res.error || 'Failed to export backup', 'error');
+      }
+    } catch {
+      showToast('Network error during export', 'error');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Restore from backup file
+  const handleRestoreBackup = async () => {
+    if (!restoreFile) return;
+    setIsRestoring(true);
+    try {
+      const text = await restoreFile.text();
+      const data = JSON.parse(text);
+      const res = await apiFetch('/backup/restore', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+      if (res.success) {
+        showToast('Database restored successfully! Please refresh the page.', 'success');
+        setShowRestoreConfirm(false);
+        setRestoreFile(null);
+      } else {
+        showToast(res.error || 'Failed to restore backup', 'error');
+      }
+    } catch (err) {
+      showToast('Invalid backup file or network error', 'error');
+    } finally {
+      setIsRestoring(false);
+    }
+  };
 
   // Load Clinic Settings from MongoDB
   const fetchClinicSettings = async () => {
@@ -513,7 +574,7 @@ export default function SettingsPage() {
             <div className="flex items-center gap-2.5">
               <Package className="w-4 h-4 text-red-400" />
               <h2 className="text-sm font-bold uppercase tracking-wider">
-                4. Treatment Packages & Procedures Catalog
+                4. Treatment Packages &amp; Procedures Catalog
               </h2>
             </div>
             <Link href="/packages">
@@ -526,6 +587,75 @@ export default function SettingsPage() {
           <p className="text-xs text-gray-400">
             Configure standard treatment packages (e.g. Root Canal, Scaling, Extraction) and pricing stored in MongoDB.
           </p>
+        </GlassCard>
+
+        {/* Section 5: Backup & Restore */}
+        <GlassCard className="p-6 space-y-5">
+          <div className="flex items-center gap-2.5 border-b border-white/10 dark:border-white/10 pb-3">
+            <ShieldCheck className="w-4 h-4 text-red-400" />
+            <h2 className="text-sm font-bold uppercase tracking-wider">
+              5. Data Backup &amp; Restore
+            </h2>
+          </div>
+
+          <p className="text-xs text-gray-400">
+            Export a full snapshot of all clinic data (patients, appointments, staff, invoices, payments, settings) as a JSON file.
+            You can restore from any previously exported backup file.
+          </p>
+
+          {/* Export */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl border border-white/10 bg-black/20">
+            <div>
+              <p className="text-xs font-bold text-gray-100">Export Full Database Backup</p>
+              <p className="text-[11px] text-gray-400 mt-0.5">Downloads a timestamped .json file of the entire MongoDB database</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportBackup}
+              isLoading={isExporting}
+              className="gap-1.5 border-emerald-700/40 text-emerald-400 hover:bg-emerald-950/30 shrink-0"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Download Backup
+            </Button>
+          </div>
+
+          {/* Restore */}
+          <div className="p-4 rounded-xl border border-white/10 bg-black/20 space-y-3">
+            <div>
+              <p className="text-xs font-bold text-gray-100">Restore from Backup File</p>
+              <p className="text-[11px] text-gray-400 mt-0.5">Select a previously exported .json backup file to restore all data. This will overwrite existing records.</p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <label className="flex-1 cursor-pointer">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed border-white/20 hover:border-red-500/40 transition-colors bg-black/10">
+                  <Upload className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                  <span className="text-[11px] text-gray-400 truncate">
+                    {restoreFile ? restoreFile.name : 'Click to select backup .json file'}
+                  </span>
+                </div>
+                <input
+                  type="file"
+                  accept=".json,application/json"
+                  className="hidden"
+                  onChange={(e) => setRestoreFile(e.target.files?.[0] || null)}
+                />
+              </label>
+
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!restoreFile}
+                onClick={() => setShowRestoreConfirm(true)}
+                className="gap-1.5 border-amber-700/40 text-amber-400 hover:bg-amber-950/30 shrink-0 disabled:opacity-40"
+              >
+                <DatabaseBackup className="w-3.5 h-3.5" />
+                Restore Backup
+              </Button>
+            </div>
+          </div>
         </GlassCard>
       </div>
 
@@ -712,6 +842,43 @@ export default function SettingsPage() {
                 onClick={handleConfirmDeleteField}
               >
                 Confirm Delete Field
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+      {/* Restore Confirmation Modal */}
+      {showRestoreConfirm && (
+        <Modal
+          isOpen={true}
+          onClose={() => setShowRestoreConfirm(false)}
+          title="Restore Database?"
+          description="This will overwrite all existing data."
+        >
+          <div className="space-y-4 text-xs">
+            <div className="p-3.5 rounded-xl bg-amber-950/40 border border-amber-800/40 flex items-start gap-2.5">
+              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <div className="text-gray-300 space-y-1">
+                <p className="font-semibold text-white">Warning: This will overwrite all current data!</p>
+                <p className="text-[11px] text-gray-400">
+                  Restoring from <span className="font-mono text-amber-300">{restoreFile?.name}</span> will replace all patients, appointments, staff, invoices, and settings with the backup data. This cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2.5 pt-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setShowRestoreConfirm(false)}>
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                className="bg-amber-700 hover:bg-amber-600"
+                isLoading={isRestoring}
+                onClick={handleRestoreBackup}
+              >
+                Yes, Restore Now
               </Button>
             </div>
           </div>

@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ডেন্টাল সেবাসমূহ | Lucky Dental Care — কুষ্টিয়া</title>
+  <meta name="description" content="Lucky Dental Care-এর পূর্ণাঙ্গ ডেন্টাল সেবাসমূহ: রুট ক্যানাল, স্কেলিং, ফিলিং, ক্রাউন, ক্যাপ, ডেন্টাল ব্রিজ, ওরাল সার্জারি ও ডিজিটাল ডেন্টিস্ট্রি।">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="ডেন্টাল সেবাসমূহ | Lucky Dental Care">
+  <meta property="og:description" content="আপনার দাঁতের সম্পূর্ণ সুরক্ষায় আধুনিক ও বিজ্ঞানসম্মত চিকিৎসা সেবা।">
+  <meta property="og:image" content="lucky_image/logo_main.jpg">
+
+  <!-- Favicons -->
+  <link rel="apple-touch-icon" sizes="180x180" href="lucky_image/favicon_io/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="lucky_image/favicon_io/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="lucky_image/favicon_io/favicon-16x16.png">
+  <link rel="manifest" href="lucky_image/favicon_io/site.webmanifest">
+  <link rel="shortcut icon" href="lucky_image/favicon_io/favicon.ico">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+  <!-- Top Bar -->
+  <div class="top-info-bar">
+    <div class="container top-bar-inner">
+      <div class="top-bar-left">
+        <span class="top-bar-badge">ESTD 1982</span>
+        <span class="top-bar-item"><i class="fas fa-certificate"></i> ৪৪ বছরের ঐতিহ্যবাহী সেবা</span>
+        <span class="top-bar-item"><i class="fas fa-map-marker-alt"></i> কুষ্টিয়া, বাংলাদেশ</span>
+      </div>
+      <div class="top-bar-right">
+        <span class="top-bar-item"><i class="fas fa-phone-alt"></i> <a href="tel:01715917834">০১৭১৫-৯১৭৮৩৪</a></span>
+        <span class="top-bar-item"><a href="https://www.facebook.com/luckydentalcare1982/" target="_blank" rel="noopener noreferrer"><i class="fab fa-facebook"></i> ফেসবুক পেজ</a></span>
+        <span class="top-bar-item" style="font-family: var(--font-latin); font-weight: 700; letter-spacing: 0.05em;">SMILE FOR LIFE</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navbar -->
+  <header class="navbar-wrapper">
+    <div class="container navbar-container">
+      <a href="index.html" class="brand-logo-link">
+        <div class="brand-logo-frame">
+          <img src="lucky_image/logo_main.jpg" alt="Lucky Dental Care Logo" width="52" height="52">
+        </div>
+        <div class="brand-name-group">
+          <span class="brand-title">LUCKY DENTAL CARE</span>
+          <span class="brand-tagline">SMILE FOR LIFE • ESTD 1982</span>
+        </div>
+      </a>
+
+      <!-- Desktop Navigation -->
+      <nav aria-label="Main Navigation">
+        <ul class="nav-menu">
+          <li><a href="index.html" class="nav-link">হোম</a></li>
+          <li><a href="about.html" class="nav-link">আমাদের সম্পর্কে</a></li>
+          <li><a href="service.html" class="nav-link active">সেবাসমূহ</a></li>
+          <li><a href="contact.html" class="nav-link">যোগাযোগ</a></li>
+        </ul>
+      </nav>
+
+      <div class="navbar-actions">
+        <a href="appointment.html" class="btn-primary-red nav-appointment-btn">
+          <i class="far fa-calendar-check"></i> অ্যাপয়েন্টমেন্ট নিন
+        </a>
+        <button type="button" class="mobile-toggle-btn" id="mobileMenuToggle" aria-label="মেনু খুলুন">
+          <i class="fas fa-bars fa-lg"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Drawer -->
+  <div class="drawer-overlay" id="drawerOverlay"></div>
+  <aside class="mobile-drawer" id="mobileDrawer">
+    <div class="drawer-header">
+      <div class="brand-logo-link">
+        <div class="brand-logo-frame" style="width: 44px; height: 44px;">
+          <img src="lucky_image/logo_main.jpg" alt="Lucky Dental Care Logo">
+        </div>
+        <div class="brand-name-group">
+          <span class="brand-title" style="font-size: 1.05rem;">LUCKY DENTAL CARE</span>
+          <span class="brand-tagline">SMILE FOR LIFE</span>
+        </div>
+      </div>
+      <button type="button" class="drawer-close-btn" id="drawerCloseBtn"><i class="fas fa-times"></i></button>
+    </div>
+    <ul class="drawer-menu">
+      <li><a href="index.html" class="drawer-link"><i class="fas fa-home"></i> হোম</a></li>
+      <li><a href="about.html" class="drawer-link"><i class="fas fa-clinic-medical"></i> আমাদের সম্পর্কে</a></li>
+      <li><a href="service.html" class="drawer-link active"><i class="fas fa-tooth"></i> ডেন্টাল সেবাসমূহ</a></li>
+      <li><a href="contact.html" class="drawer-link"><i class="fas fa-map-marked-alt"></i> যোগাযোগ ও লোকেশন</a></li>
+      <li><a href="appointment.html" class="drawer-link"><i class="far fa-calendar-check"></i> অ্যাপয়েন্টমেন্ট নিন</a></li>
+    </ul>
+    <div class="drawer-footer">
+      <a href="tel:01715917834" class="btn-secondary-white" style="width: 100%;"><i class="fas fa-phone-alt"></i> ০১৭১৫-৯১৭৮৩৪</a>
+      <a href="appointment.html" class="btn-primary-red" style="width: 100%;"><i class="far fa-calendar-check"></i> অ্যাপয়েন্টমেন্ট নিন</a>
+    </div>
+  </aside>
+
+  <!-- Page Hero with Breadcrumb -->
+  <section class="page-hero">
+    <div class="container page-hero-inner">
+      <nav class="breadcrumb-trail" aria-label="Breadcrumb">
+        <span class="breadcrumb-item"><a href="index.html"><i class="fas fa-home"></i> হোম</a></span>
+        <span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>
+        <span class="breadcrumb-item active">সেবাসমূহ</span>
+      </nav>
+      <span class="page-hero-badge"><i class="fas fa-tooth"></i> ডেন্টাল কেয়ার ডিরেক্টরি</span>
+      <h1 class="page-hero-title">সেবাসমূহ</h1>
+      <p class="page-hero-subtitle">"আপনার দাঁতের যত্নে আমাদের সকল সেবা" — নিরাপদ, ব্যথাহীন ও আধুনিক প্রযুক্তিনির্ভর ডেন্টাল সলিউশন</p>
+    </div>
+  </section>
+
+  <!-- Complete Services Directory -->
+  <section class="section-spacing">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-badge"><i class="fas fa-stethoscope"></i> বিশেষায়িত তালিকা</span>
+        <h2 class="section-title">আমাদের সকল ক্লিনিক্যাল চিকিৎসাসমূহ</h2>
+        <p class="section-subtitle">
+          অভিজ্ঞতা ও আধুনিক ডিজিটাল সরঞ্জামের সমন্বয়ে Lucky Dental Care-এ প্রদত্ত প্রতিটি সেবা শতভাগ মানসম্মত ও নির্ভরযোগ্য।
+        </p>
+      </div>
+
+      <!-- Category Filter Tabs -->
+      <div class="service-filter-bar" data-reveal="fade-up">
+        <button type="button" class="service-filter-btn active" data-filter="all">সকল সেবা (১২)</button>
+        <button type="button" class="service-filter-btn" data-filter="restorative">রিস্টোরেটিভ ও ফিলিং</button>
+        <button type="button" class="service-filter-btn" data-filter="cosmetic">কসমেটিক ও স্মাইল</button>
+        <button type="button" class="service-filter-btn" data-filter="general">সাধারণ ও প্রতিরোধমূলক</button>
+        <button type="button" class="service-filter-btn" data-filter="surgery">ইমপ্লান্ট ও অর্থোডন্টিক্স</button>
+      </div>
+
+      <div class="tdc-dental-section-wrapper">
+        <div class="tdc-services-grid-container">
+
+          <!-- 1. Cosmetic Teeth Gap Filling -->
+          <a href="appointment.html?service=Teeth+Gap+Filling" class="tdc-service-card-item" data-category="cosmetic" data-reveal="fade-up">
+            <div class="tdc-card-image-box">
+              <img width="1024" height="731" class="tdc-img-before" src="img/service-gap-filling-before.webp" alt="Teeth gap filling before treatment" loading="lazy">
+              <img width="1024" height="731" class="tdc-img-after" src="img/service-gap-filling-after.webp" alt="Teeth gap filling after treatment" loading="lazy">
+              <span class="tdc-image-status-badge">Before / After</span>
+            </div>
+            <div class="tdc-card-content-body">
+              <h3 class="tdc-service-heading">কসমেটিক দাঁতের ফাঁকা ফিলিং</h3>
+              <div class="tdc-meta-info">
+                <span><i class="far fa-clock"></i> ৪০ মিনিট</span>
+                <span>• কসমেটিক</span>
+              </div>
+              <div class="tdc-divider-line"></div>
+              <div class="tdc-price-box">
+                <span class="tdc-price-label">চিকিৎসা খরচ শুরু</span>
+                <span class="tdc-price-value">৫,০০০ ৳</span>
+              </div>
+              <span class="tdc-card-cta-btn">অ্যাপয়েন্টমেন্ট নিন <i class="fas fa-arrow-right"></i></span>
+            </div>
+          </a>
+
+          <!-- 2. Painless Root Canal -->
+          <a href="appointment.html?service=Root+Canal+Treatment" class="tdc-service-card-item" data-category="restorative" data-reveal="fade-up">
+            <div class="tdc-card-image-box">
+              <img width="1024" height="731" class="tdc-img-before" src="img/service-root-canal-before.webp" alt="Painless root canal treatment before" loading="lazy">
+              <img width="1024" height="731" class="tdc-img-after" src="img/service-root-canal-after.webp" alt="Root canal after treatment" loading="lazy">
+              <span class="tdc-image-status-badge">Before / After</span>
+            </div>
+            <div class="tdc-card-content-body">
+              <h3 class="tdc-service-heading">ব্যথাহীন রুট ক্যানাল চিকিৎসা (RCT)</h3>
+              <div class="tdc-meta-info">
+                <span><i class="far fa-clock"></i> ৪৫ মিনিট</span>
+                <span>• রিস্টোরেটিভ</span>
+              </div>
+              <div class="tdc-divider-line"></div>
+              <div class="tdc-price-box">
+                <span class="tdc-price-label">চিকিৎসা খরচ শুরু</span>
+                <span class="tdc-price-value">৮,০০০ ৳</span>
+              </div>
+              <span class="tdc-card-cta-btn">অ্যাপয়েন্টমেন্ট নিন <i class="fas fa-arrow-right"></i></span>
+            </div>
+          </a>
+
+          <!-- 3. Ceramic Dental Crown -->
+          <a href="appointment.html?service=Dental+Crown" class="tdc-service-card-item" data-category="restorative" data-reveal="fade-up">
+            <div class="tdc-card-image-box">
+              <img width="1024" height="731" class="tdc-img-before" src="img/service-crown-before.webp" alt="Ceramic dental crown before" loading="lazy">
+              <img width="1024" height="731" class="tdc-img-after" src="img/service-crown-after.webp" alt="Dental crown after placement" loading="lazy">
+              <span class="tdc-image-status-badge">Before / After</span>
+            </div>
+            <div class="tdc-card-content-body">
+              <h3 class="tdc-service-heading">সিরামিক ডেন্টাল ক্রাউন ও ক্যাপ</h3>
+              <div class="tdc-meta-info">
+                <span><i class="far fa-clock"></i> ৪৫ মিনিট</span>
+                <span>• স্থায়ী সুরক্ষা</span>
+              </div>
+              <div class="tdc-divider-line"></div>
+              <div class="tdc-price-box">
+                <span class="tdc-price-label">চিকিৎসা খরচ শুরু</span>
+                <span class="tdc-price-value">৮,০০০ ৳</span>
+              </div>
+              <span class="tdc-card-cta-btn">অ্যাপয়েন্টমেন্ট নিন <i class="fas fa-arrow-right"></i></span>
+            </div>
+          </a>
+
+          <!-- 4. Professional Teeth Scaling -->
+          <a href="appointment.html?service=Teeth+Scaling" class="tdc-service-card-item" data-category="general" data-reveal="fade-up">
+            <div class="tdc-card-image-box">
+              <img width="1024" height="731" class="tdc-img-before" src="img/service-scaling-before.webp" alt="Teeth scaling before" loading="lazy">
+              <img width="1024" height="731" class="tdc-img-after" src="img/service-scaling-after.webp" alt="Teeth scaling after polishing" loading="lazy">
+              <span class="tdc-image-status-badge">Before / After</span>
+            </div>
+            <div class="tdc-card-content-body">
+              <h3 class="tdc-service-heading">দাঁতের স্কেলিং ও পলিশিং</h3>
+              <div class="tdc-meta-info">
+                <span><i class="fas fa-soap"></i> হাইজিন</span>
+                <span>• মাড়ি সুরক্ষা</span>
+              </div>
+              <div class="tdc-divider-line"></div>
+              <div class="tdc-price-box">
+                <span class="tdc-price-label">চিকিৎসা খরচ শুরু</span>
+                <span class="tdc-price-value">১,৯৯০ ৳</span>
+              </div>
+              <span class="tdc-card-cta-btn">অ্যাপয়েন্টমেন্ট নিন <i class="fas fa-arrow-right"></i></span>
+            </div>
+          </a>
+
+          <!-- 5. Advanced Nano-Composite Filling -->
+          <a href="appointment.html?service=Dental+Filling" class="tdc-service-card-item" data-category="restorative" data-reveal="fade-up">
+            <div class="tdc-card-image-box">
+              <img width="1024" height="731" class="tdc-img-before" src="img/service-filling-before.webp" alt="Tooth filling before treatment" loading="lazy">
+              <img width="1024" height="731" class="tdc-img-after" src="img/service-filling-after.webp" alt="Tooth filling after treatment" loading="lazy">
+              <span class="tdc-image-status-badge">Before / After</span>
+            </div>
+            <div class="tdc-card-content-body">
+              <h3 class="tdc-service-heading">ন্যানো-কম্পোজিট ডেন্টাল ফিলিং</h3>
+              <div class="tdc-meta-info">
+                <span><i class="fas fa-tooth"></i> রেস্টোরেশন</span>
+                <span>• ন্যাচারাল লুক</span>
+              </div>
+              <div class="tdc-divider-line"></div>
+              <div class="tdc-price-box">
+                <span class="tdc-price-label">চিকিৎসা খরচ শুরু</span>
+                <span class="tdc-price-value">৩,০০০ ৳</span>
+              </div>
+              <span class="tdc-card-cta-btn">অ্যাপয়েন্টমেন্ট নিন <i class="fas fa-arrow-right"></i></span>
+            </div>
+          </a>
+
+          <!-- 6. Metal & Ceramic Braces -->
+          <a href="appointment.html?service=Teeth+Braces" class="tdc-service-card-item" data-category="surgery" data-reveal="fade-up">
+            <div class="tdc-card-image-box">
+              <img width="1024" height="731" class="tdc-img-before" src="img/service-braces-before.webp" alt="Teeth braces before treatment" loading="lazy">
+              <img width="1024" height="731" class="tdc-img-after" src="img/service-braces-after.webp" alt="Teeth braces after alignment" loading="lazy">
+              <span class="tdc-image-status-badge">Before / After</span>
+            </div>
+            <div class="tdc-card-content-body">
+              <h3 class="tdc-service-heading">মেটাল ও সিরামিক ব্রেসিস</h3>
+              <div class="tdc-meta-info">
+                <span><i class="far fa-clock"></i> সহজ কিস্তি</span>
+                <span>• অর্থোডন্টিক্স</span>
+              </div>
+              <div class="tdc-divider-line"></div>
+              <div class="tdc-price-box">
+                <span class="tdc-price-label">চিকিৎসা খরচ শুরু</span>
+                <span class="tdc-price-value">৫০,০০০ ৳</span>
+              </div>
+              <span class="tdc-card-cta-btn">অ্যাপয়েন্টমেন্ট নিন <i class="fas fa-arrow-right"></i></span>
+            </div>
+          </a>
+
+          <!-- 7. Permanent Dental Implants -->
+          <a href="appointment.html?service=Dental+Implants" class="tdc-service-card-item" data-category="surgery" data-reveal="fade-up">
+            <div class="tdc-card-image-box">
+              <img width="1024" height="731" class="tdc-img-before" src="img/service-implants-before.webp" alt="Dental implants before" loading="lazy">
+              <img width="1024" height="731" class="tdc-img-after" src="img/service-implants-after.webp" alt="Dental implants after restoration" loading="lazy">
+              <span class="tdc-image-status-badge">Before / After</span>
+            </div>
+            <div class="tdc-card-content-body">
+              <h3 class="tdc-service-heading">স্থায়ী ডেন্টাল ইমপ্লান্ট</h3>
+              <div class="tdc-meta-info">
+                <span><i class="far fa-clock"></i> ৬০ মিনিট</span>
+                <span>• স্থায়ী দাঁত</span>
+              </div>
+              <div class="tdc-divider-line"></div>
+              <div class="tdc-price-box">
+                <span class="tdc-price-label">চিকিৎসা খরচ শুরু</span>
+                <span class="tdc-price-value">৬০,০০০ – ৮০,০০০ ৳</span>
+              </div>
+              <span class="tdc-card-cta-btn">অ্যাপয়েন্টমেন্ট নিন <i class="fas fa-arrow-right"></i></span>
+            </div>
+          </a>
+
+          <!-- 8. Direct Composite Veneers -->
+          <a href="appointment.html?service=Composite+Veneers" class="tdc-service-card-item" data-category="cosmetic" data-reveal="fade-up">
+            <div class="tdc-card-image-box">
+              <img width="1024" height="731" class="tdc-img-before" src="img/service-veneers-before.webp" alt="Composite veneers before" loading="lazy">
+              <img width="1024" height="731" class="tdc-img-after" src="img/service-veneers-after.webp" alt="Veneers smile design after" loading="lazy">
+              <span class="tdc-image-status-badge">Before / After</span>
+            </div>
+            <div class="tdc-card-content-body">
+              <h3 class="tdc-service-heading">ডিরেক্ট কম্পোজিট ভিনিয়ার্স</h3>
+              <div class="tdc-meta-info">
+                <span><i class="fas fa-gem"></i> পোর্সেলিন লুক</span>
+                <span>• পারফেক্ট হাসি</span>
+              </div>
+              <div class="tdc-divider-line"></div>
+              <div class="tdc-price-box">
+                <span class="tdc-price-label">প্রতি দাঁত খরচ শুরু</span>
+                <span class="tdc-price-value">৫,০০০ ৳</span>
+              </div>
+              <span class="tdc-card-cta-btn">অ্যাপয়েন্টমেন্ট নিন <i class="fas fa-arrow-right"></i></span>
+            </div>
+          </a>
+
+          <!-- 9. Invisalign Clear Aligners -->
+          <a href="appointment.html?service=Invisalign+Aligners" class="tdc-service-card-item" data-category="cosmetic" data-reveal="fade-up">
+            <div class="tdc-card-image-box">
+              <img width="1024" height="731" class="tdc-img-before" src="img/service-invisalign-before.webp" alt="Invisalign clear aligners before" loading="lazy">
+              <img width="1024" height="731" class="tdc-img-after" src="img/service-invisalign-after.webp" alt="Invisalign clear aligners after" loading="lazy">
+              <span class="tdc-image-status-badge">Before / After</span>
+            </div>
+            <div class="tdc-card-content-body">
+              <h3 class="tdc-service-heading">ইনভিজালাইন ক্লিয়ার অ্যালাইনার</h3>
+              <div class="tdc-meta-info">
+                <span><i class="fas fa-eye-slash"></i> সম্পূর্ণ অদৃশ্য</span>
+                <span>• আরামদায়ক</span>
+              </div>
+              <div class="tdc-divider-line"></div>
+              <div class="tdc-price-box">
+                <span class="tdc-price-label">ফুল কোর্স প্যাকেজ</span>
+                <span class="tdc-price-value">১,৮০,০০০ ৳</span>
+              </div>
+              <span class="tdc-card-cta-btn">অ্যাপয়েন্টমেন্ট নিন <i class="fas fa-arrow-right"></i></span>
+            </div>
+          </a>
+
+          <!-- 10. Digital Smile Design -->
+          <a href="appointment.html?service=Smile+Design" class="tdc-service-card-item" data-category="cosmetic" data-reveal="fade-up">
+            <div class="tdc-card-image-box">
+              <img width="1024" height="731" class="tdc-img-before" src="img/service-smile-design-before.webp" alt="Digital smile design before" loading="lazy">
+              <img width="1024" height="731" class="tdc-img-after" src="img/service-smile-design-after.webp" alt="Digital smile design 3D after" loading="lazy">
+              <span class="tdc-image-status-badge">Before / After</span>
+            </div>
+            <div class="tdc-card-content-body">
+              <h3 class="tdc-service-heading">ডিজিটাল স্মাইল ডিজাইন (DSD)</h3>
+              <div class="tdc-meta-info">
+                <span><i class="fas fa-camera"></i> ৩ডি স্ক্যানিং</span>
+                <span>• নিখুঁত ফেসিয়াল রেশিও</span>
+              </div>
+              <div class="tdc-divider-line"></div>
+              <div class="tdc-price-box">
+                <span class="tdc-price-label">প্যাকেজ শুরু</span>
+                <span class="tdc-price-value">২০,০০০ ৳</span>
+              </div>
+              <span class="tdc-card-cta-btn">অ্যাপয়েন্টমেন্ট নিন <i class="fas fa-arrow-right"></i></span>
+            </div>
+          </a>
+
+          <!-- 11. Laser Teeth Whitening -->
+          <a href="appointment.html?service=Teeth+Whitening" class="tdc-service-card-item" data-category="cosmetic" data-reveal="fade-up">
+            <div class="tdc-card-image-box">
+              <img width="1024" height="731" class="tdc-img-before" src="img/service-whitening-before.webp" alt="Teeth whitening before" loading="lazy">
+              <img width="1024" height="731" class="tdc-img-after" src="img/service-whitening-after.webp" alt="Teeth whitening after laser session" loading="lazy">
+              <span class="tdc-image-status-badge">Before / After</span>
+            </div>
+            <div class="tdc-card-content-body">
+              <h3 class="tdc-service-heading">লেজার টিথ হোয়াইটেনিং</h3>
+              <div class="tdc-meta-info">
+                <span><i class="far fa-clock"></i> ৩০ মিনিট</span>
+                <span>• উজ্জ্বল সাদা হাসি</span>
+              </div>
+              <div class="tdc-divider-line"></div>
+              <div class="tdc-price-box">
+                <span class="tdc-price-label">চিকিৎসা খরচ শুরু</span>
+                <span class="tdc-price-value">১৫,০০০ ৳</span>
+              </div>
+              <span class="tdc-card-cta-btn">অ্যাপয়েন্টমেন্ট নিন <i class="fas fa-arrow-right"></i></span>
+            </div>
+          </a>
+
+          <!-- 12. Pediatric Dentistry -->
+          <a href="appointment.html?service=Pediatric+Dentistry" class="tdc-service-card-item" data-category="general" data-reveal="fade-up">
+            <div class="tdc-card-image-box">
+              <img width="1024" height="731" class="tdc-img-before" src="img/service-pediatric-before.webp" alt="Pediatric dentistry before" loading="lazy">
+              <img width="1024" height="731" class="tdc-img-after" src="img/service-pediatric-after.webp" alt="Pediatric dentistry gentle care" loading="lazy">
+              <span class="tdc-image-status-badge">Before / After</span>
+            </div>
+            <div class="tdc-card-content-body">
+              <h3 class="tdc-service-heading">শিশুদের ডেন্টাল কেয়ার</h3>
+              <div class="tdc-meta-info">
+                <span><i class="fas fa-baby"></i> পরম যত্ন</span>
+                <span>• ভীতিহীন পরিবেশ</span>
+              </div>
+              <div class="tdc-divider-line"></div>
+              <div class="tdc-price-box">
+                <span class="tdc-price-label">পরামর্শ ফি শুরু</span>
+                <span class="tdc-price-value">১,০০০ ৳</span>
+              </div>
+              <span class="tdc-card-cta-btn">অ্যাপয়েন্টমেন্ট নিন <i class="fas fa-arrow-right"></i></span>
+            </div>
+          </a>
+
+        </div>
+      </div>
+
+      <!-- Estimator Promo Banner -->
+      <div class="service-estimator-promo-banner" data-reveal="zoom-in" style="margin-top: 50px; background: linear-gradient(135deg, #941324 0%, #cb0437 100%); border-radius: 16px; padding: 36px 32px; color: #ffffff; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 24px; box-shadow: 0 14px 36px rgba(148, 19, 36, 0.22);">
+        <div style="max-width: 650px;">
+          <span style="display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; margin-bottom: 12px;"><i class="fas fa-calculator"></i> স্মার্ট ক্যালকুলেটর</span>
+          <h3 style="font-size: 1.65rem; color: #ffffff; margin-bottom: 8px; font-weight: 700;">আপনার প্রয়োজনীয় চিকিৎসার আনুমানিক খরচ জানতে চান?</h3>
+          <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 0.98rem; line-height: 1.6;">আমাদের লাইভ ইন্টারেক্টিভ প্রাইস এস্টিমেটরে তাৎক্ষণিকভাবে বিভিন্ন চিকিৎসা প্যাকেজ ও খরচের হিসাব মিলিয়ে নিন।</p>
+        </div>
+        <div>
+          <a href="index.html#price-estimator" class="btn-primary-red" style="background: #ffffff; color: #941324; font-weight: 700; padding: 14px 28px; border-radius: 50px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 6px 20px rgba(0,0,0,0.15); transition: transform 0.2s ease;">
+            <i class="fas fa-calculator"></i> খরচ হিসাব করুন <i class="fas fa-arrow-right"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Banner -->
+  <section class="appointment-cta-banner">
+    <div class="container">
+      <div class="cta-banner-card">
+        <div class="cta-banner-content">
+          <span class="cta-banner-badge"><i class="far fa-clock"></i> দ্রুত শিডিউল করুন</span>
+          <h2 class="cta-banner-title">আপনার দাঁতের সমস্যায় বিশেষজ্ঞ পরামর্শ চান?</h2>
+          <p class="cta-banner-desc">
+            Lucky Dental Care-এ এখনই আপনার পছন্দের দিনে ও সময়ে অ্যাপয়েন্টমেন্ট শিডিউল করুন।
+          </p>
+        </div>
+        <div class="cta-banner-actions">
+          <a href="appointment.html" class="btn-primary-red cta-main-btn">
+            <i class="far fa-calendar-check"></i> অ্যাপয়েন্টমেন্ট বুক করুন
+          </a>
+          <a href="tel:01715917834" class="btn-secondary-white cta-call-btn">
+            <i class="fas fa-phone-alt"></i> কল: ০১৭১৫-৯১৭৮৩৪
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+    <!-- Shared Footer (Simplified 3-Column Clean Design - Section 7 & 25) -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid simplified-footer-grid">
+        <!-- Brand Column -->
+        <div class="footer-brand-col">
+          <div class="brand-logo-link" style="margin-bottom: 16px;">
+            <div class="brand-logo-frame">
+              <img src="lucky_image/logo_main.jpg" alt="Lucky Dental Care Logo" width="52" height="52">
+            </div>
+            <div class="brand-name-group">
+              <span class="brand-title" style="color: var(--brand-white);">LUCKY DENTAL CARE</span>
+              <span class="brand-tagline" style="color: rgba(255,255,255,0.7);">SMILE FOR LIFE • ESTD 1982</span>
+            </div>
+          </div>
+          <p class="footer-desc">
+            ১৯৮২ সাল থেকে কুষ্টিয়াবাসীর আস্থার প্রতীক Lucky Dental Care — চার দশকের ঐতিহ্য ও আধুনিক ডেন্টিস্ট্রির সমন্বয়ে আপনার সুন্দর ও সুস্থ হাসির বিশ্বস্ত ঠিকানা।
+          </p>
+        </div>
+
+        <!-- Essential Quick Links Column (Only 4 main pages + Appointment + Location) -->
+        <div>
+          <h4 class="footer-col-title">প্রয়োজনীয় লিংক</h4>
+          <ul class="footer-nav-list">
+            <li><a href="index.html"><i class="fas fa-chevron-right"></i> হোম</a></li>
+            <li><a href="about.html"><i class="fas fa-chevron-right"></i> আমাদের সম্পর্কে</a></li>
+            <li><a href="service.html"><i class="fas fa-chevron-right"></i> সেবাসমূহ</a></li>
+            <li><a href="contact.html"><i class="fas fa-chevron-right"></i> যোগাযোগ</a></li>
+            <li><a href="appointment.html"><i class="far fa-calendar-check"></i> অ্যাপয়েন্টমেন্ট নিন</a></li>
+            <li><a href="https://www.google.com/maps/place/Lucky+Dental+Care/@23.9080413,89.13006,978m/data=!3m1!1e3!4m6!3m5!1s0x39fe97007520661f:0xbec8cc848fb24d5d!8m2!3d23.9080413!4d89.13006!16s%2Fg%2F11wy1mrwj2?entry=ttu" target="_blank" rel="noopener noreferrer"><i class="fas fa-map-marker-alt"></i> লোকেশন দেখুন (Google Maps)</a></li>
+          </ul>
+        </div>
+
+        <!-- Clinic & Contact Information Column -->
+        <div>
+          <h4 class="footer-col-title">ঠিকানা ও যোগাযোগ</h4>
+          <ul class="footer-contact-list">
+            <li class="footer-contact-item">
+              <i class="fas fa-map-marker-alt"></i>
+              <span>Lucky Dental Care<br>কুষ্টিয়া, বাংলাদেশ</span>
+            </li>
+            <li class="footer-contact-item">
+              <i class="fas fa-user-md"></i>
+              <span>ডেন্টিস্ট মোঃ যোসেফ বিশ্বাস (রকি)</span>
+            </li>
+            <li class="footer-contact-item">
+              <i class="fas fa-phone-alt"></i>
+              <span><a href="tel:01715917834">০১৭১৫-৯১৭৮৩৪</a></span>
+            </li>
+            <li class="footer-contact-item">
+              <i class="fab fa-facebook"></i>
+              <span><a href="https://www.facebook.com/luckydentalcare1982/" target="_blank" rel="noopener noreferrer">অফিসিয়াল ফেসবুক পেজ</a></span>
+            </li>
+            <li class="footer-contact-item">
+              <i class="fas fa-clock"></i>
+              <span>শনিবার - বৃহস্পতিবার: সকাল ১০:০০ - রাত ৯:০০ (শুক্রবার বন্ধ)</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom-bar">
+        <div>Lucky Dental Care © 2026. সর্বস্বত্ব সংরক্ষিত। | <strong>SMILE FOR LIFE • ESTD 1982</strong> | <a href="#" class="cms-admin-entry-link" title="অ্যাডমিন সম্পাদনা মোড"><i class="fas fa-lock"></i> সম্পাদনা</a></div>
+        <div>কুষ্টিয়া, বাংলাদেশ | মোবাইল: ০১৭১৫-৯১৭৮৩৪</div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Mobile Sticky Bar -->
+  <div class="mobile-sticky-bar">
+    <a href="tel:01715917834" class="mobile-bar-btn call-btn"><i class="fas fa-phone-alt"></i> কল করুন</a>
+    <a href="appointment.html" class="mobile-bar-btn apt-btn"><i class="far fa-calendar-check"></i> অ্যাপয়েন্টমেন্ট</a>
+  </div>
+
+  <button type="button" class="back-to-top-btn" id="backToTopBtn" aria-label="উপরে যান">
+    <i class="fas fa-arrow-up"></i>
+  </button>
+
+  <!-- Lucky Dental Care Scripts -->
+  <script src="js/global.js"></script>
+  <script src="js/cms.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

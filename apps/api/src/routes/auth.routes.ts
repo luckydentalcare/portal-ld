@@ -15,4 +15,9 @@ router.post('/auth/login', loginLimiter, login);
 router.post('/auth/logout', logout);
 router.get('/auth/me', authenticateAdmin, getCurrentUser);
 
+// Aliases matching context.md Section 18 & 75
+router.post('/admin/login', loginLimiter, login);
+router.post('/admin/logout', logout);
+router.get('/admin/session', authenticateAdmin, getCurrentUser);
+
 export default router;

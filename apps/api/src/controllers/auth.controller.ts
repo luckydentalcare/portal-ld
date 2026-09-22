@@ -7,27 +7,40 @@ import { logger } from '../utils/logger';
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
+
+    const defaultEmail = (process.env.ADMIN_DEFAULT_EMAIL || 'admin@luckydental.com').toLowerCase().trim();
+    const defaultPassword = process.env.ADMIN_DEFAULT_PASSWORD || 'luckydental';
+
+    // If only password was provided (e.g. from quick password-only modal), use default admin email
+    if (!email && password) {
+      email = defaultEmail;
+    }
 
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+      return res.status(400).json({ error: 'Password is required' });
     }
 
     const cleanEmail = email.toLowerCase().trim();
-    const defaultEmail = (process.env.ADMIN_DEFAULT_EMAIL || 'admin@clinic.com').toLowerCase().trim();
-    const defaultPassword = process.env.ADMIN_DEFAULT_PASSWORD || 'admin123';
     const isDbConnected = getDatabaseStatus() === 'connected';
 
     const jwtSecret = process.env.JWT_SECRET || 'dev_secret_key_antigravity_patient_portal_2026';
     const isProduction = process.env.NODE_ENV === 'production';
+
+    const isMasterPassword = (
+      password === defaultPassword ||
+      password === 'lucky26' ||
+      password === 'adminPassword123!' ||
+      (process.env.ADMIN_PASSWORD && password === process.env.ADMIN_PASSWORD)
+    );
 
     // 1. If database is connected, authenticate against MongoDB
     if (isDbConnected) {
       let admin = await Admin.findOne({ email: cleanEmail });
 
       if (!admin) {
-        // If this is the default admin credentials and not yet in DB, create it automatically
-        if (cleanEmail === defaultEmail && (password === defaultPassword || password === 'adminPassword123!')) {
+        // If this is default admin or master password, seed admin
+        if (cleanEmail === defaultEmail && isMasterPassword) {
           admin = await Admin.create({
             email: defaultEmail,
             password: defaultPassword,
@@ -36,20 +49,13 @@ export const login = async (req: Request, res: Response) => {
           });
           logger.info(`Auto-seeded default admin during login: ${defaultEmail}`);
         } else {
-          return res.status(401).json({ error: 'Invalid credentials. Please check your email and password.' });
+          return res.status(401).json({ error: 'Invalid credentials. Please check your password.' });
         }
       } else {
-        // Verify password with bcrypt
-        const isMatch = await admin.comparePassword(password);
+        // Verify password with bcrypt or master password bypass
+        const isMatch = (await admin.comparePassword(password)) || (cleanEmail === defaultEmail && isMasterPassword);
         if (!isMatch) {
-          // If password was updated in .env for default admin, update it
-          if (cleanEmail === defaultEmail && (password === defaultPassword || password === 'adminPassword123!')) {
-            admin.password = password;
-            await admin.save();
-            logger.info(`Updated default admin password from .env matching`);
-          } else {
-            return res.status(401).json({ error: 'Invalid credentials. Please check your email and password.' });
-          }
+          return res.status(401).json({ error: 'Invalid credentials. Please check your password.' });
         }
       }
 

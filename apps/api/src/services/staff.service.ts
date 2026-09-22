@@ -157,6 +157,7 @@ class StaffService {
     }
 
     return {
+      ...staff,
       staff,
       year: targetYear,
       monthlyGrid,
@@ -240,16 +241,26 @@ class StaffService {
     const isDbConnected = getDatabaseStatus() === 'connected';
     if (isDbConnected) {
       try {
-        const paymentCount = await SalaryPayment.countDocuments({ staffId: id });
-        if (paymentCount > 0) {
-          // Soft-deactivate to retain payroll history
-          await Staff.findByIdAndUpdate(id, { status: 'inactive' });
-          return { success: true, deactivated: true, message: 'Staff member deactivated to preserve payroll history.' };
-        } else {
-          // Hard delete if no payments exist
-          await Staff.findByIdAndDelete(id);
-          return { success: true, deleted: true, message: 'Staff member deleted successfully.' };
-        }
+        const staffDoc = await Staff.findById(id);
+        await Promise.all([
+          Staff.findByIdAndDelete(id),
+          SalaryPayment.deleteMany({
+            $or: [
+              { staffId: id },
+              ...(staffDoc ? [{ staffName: staffDoc.name }] : [])
+            ]
+          })
+        ]);
+        logger.info(`Staff member and associated payroll records permanently deleted: ${id}`);
+        // Clean in-memory caches as well
+        const idx = inMemoryStaff.findIndex((s) => s.id === id || s._id === id);
+        if (idx !== -1) inMemoryStaff.splice(idx, 1);
+        const paymentIndices = inMemoryPayments
+          .map((p, i) => (p.staffId === id ? i : -1))
+          .filter((i) => i !== -1)
+          .reverse();
+        paymentIndices.forEach((i) => inMemoryPayments.splice(i, 1));
+        return { success: true, deleted: true, message: 'Staff member and all associated payroll records deleted successfully.' };
       } catch (err) {
         logger.error('MongoDB deleteStaff error', { err });
         throw err;
@@ -259,9 +270,72 @@ class StaffService {
     const idx = inMemoryStaff.findIndex((s) => s.id === id || s._id === id);
     if (idx !== -1) {
       inMemoryStaff.splice(idx, 1);
+      const paymentIndices = inMemoryPayments
+        .map((p, i) => (p.staffId === id ? i : -1))
+        .filter((i) => i !== -1)
+        .reverse();
+      paymentIndices.forEach((i) => inMemoryPayments.splice(i, 1));
       return { success: true, deleted: true, message: 'Staff member deleted.' };
     }
     return { success: false, message: 'Staff member not found.' };
+  }
+
+  async deleteSalaryPayment(paymentId: string, staffId?: string) {
+    const isDbConnected = getDatabaseStatus() === 'connected';
+    if (isDbConnected) {
+      try {
+        const query: any = { _id: paymentId };
+        if (staffId) {
+          query.staffId = staffId;
+        }
+        const deletedDoc = await SalaryPayment.findOneAndDelete(query);
+        if (deletedDoc) {
+          logger.info(`Salary payment reverted/deleted: ${paymentId}`);
+          return { success: true, message: `Salary payment reverted successfully.`, data: deletedDoc };
+        }
+      } catch (err) {
+        logger.error('MongoDB deleteSalaryPayment error', { err });
+        throw err;
+      }
+    }
+
+    const idx = inMemoryPayments.findIndex(
+      (p) => (p.id === paymentId || p._id === paymentId) && (!staffId || p.staffId === staffId)
+    );
+    if (idx !== -1) {
+      const removed = inMemoryPayments.splice(idx, 1)[0];
+      return { success: true, message: 'Salary payment reverted.', data: removed };
+    }
+    return { success: false, message: 'Payment record not found.' };
+  }
+
+  async unpayMonth(staffId: string, monthKey: string) {
+    const isDbConnected = getDatabaseStatus() === 'connected';
+    if (isDbConnected) {
+      try {
+        const res = await SalaryPayment.deleteMany({ staffId, monthKey });
+        logger.info(`Month ${monthKey} marked as unpaid for staff ${staffId}, removed ${res.deletedCount} payments`);
+        return {
+          success: true,
+          message: `Month ${monthKey} marked as unpaid. All recorded payments reverted.`,
+          deletedCount: res.deletedCount
+        };
+      } catch (err) {
+        logger.error('MongoDB unpayMonth error', { err });
+        throw err;
+      }
+    }
+
+    const indices = inMemoryPayments
+      .map((p, i) => (p.staffId === staffId && p.monthKey === monthKey ? i : -1))
+      .filter((i) => i !== -1)
+      .reverse();
+    indices.forEach((i) => inMemoryPayments.splice(i, 1));
+    return {
+      success: true,
+      message: `Month ${monthKey} marked as unpaid.`,
+      deletedCount: indices.length
+    };
   }
 
   async recordSalaryPayment(data: RecordSalaryPaymentDTO) {
@@ -283,10 +357,10 @@ class StaffService {
         throw new Error('Staff member not found.');
       }
 
-      const expectedSalary = Number(staff.staff.monthlySalary) || 0;
+      const expectedSalary = Number(staff.staff?.monthlySalary ?? staff.monthlySalary) || 0;
 
       // Calculate how much has already been paid for this month
-      const existingMonthRecord = staff.monthlyGrid.find((g: any) => g.monthKey === data.monthKey);
+      const existingMonthRecord = staff.monthlyGrid?.find((g: any) => g.monthKey === data.monthKey);
       const currentlyPaid = existingMonthRecord ? existingMonthRecord.paidAmount : 0;
       const remaining = expectedSalary - currentlyPaid;
 
@@ -296,7 +370,7 @@ class StaffService {
 
       const paymentPayload = {
         staffId: data.staffId,
-        staffName: staff.staff.name,
+        staffName: staff.staff?.name ?? staff.name,
         monthKey: data.monthKey,
         expectedSalary,
         amount,
@@ -360,8 +434,11 @@ class StaffService {
           totalStaff,
           activeStaff,
           thisMonthPayroll,
+          thisMonthExpectedPayroll: thisMonthPayroll,
           paidThisMonth,
-          remainingPayroll
+          thisMonthDisbursedPayroll: paidThisMonth,
+          remainingPayroll,
+          remainingDueThisMonth: remainingPayroll
         };
       } catch (err) {
         logger.warn('MongoDB getStaffStats error', { err });
@@ -382,8 +459,11 @@ class StaffService {
       totalStaff,
       activeStaff,
       thisMonthPayroll,
+      thisMonthExpectedPayroll: thisMonthPayroll,
       paidThisMonth,
-      remainingPayroll
+      thisMonthDisbursedPayroll: paidThisMonth,
+      remainingPayroll,
+      remainingDueThisMonth: remainingPayroll
     };
   }
 }

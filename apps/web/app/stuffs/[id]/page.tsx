@@ -17,7 +17,9 @@ import {
   Clock, 
   Loader2,
   Plus,
-  Stethoscope
+  Stethoscope,
+  Trash2,
+  RotateCcw
 } from 'lucide-react';
 import DashboardLayout from '@/app/dashboard/layout';
 import { GlassCard } from '@/components/ui/glass-card';
@@ -58,21 +60,30 @@ export default function StaffProfilePage() {
   const [payNotes, setPayNotes] = useState('');
   const [isSavingPayment, setIsSavingPayment] = useState(false);
 
+  // Undo / Mark Unpaid State
+  const [unpayTarget, setUnpayTarget] = useState<{ monthKey: string; monthTitle: string } | null>(null);
+  const [isUnpaying, setIsUnpaying] = useState(false);
+
+  // Delete Individual Payment Slip State
+  const [deletePaymentTarget, setDeletePaymentTarget] = useState<SalaryPayment | null>(null);
+  const [isDeletingPayment, setIsDeletingPayment] = useState(false);
+
   // Fetch Staff and Payroll Grid
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
       const [staffRes, payrollRes] = await Promise.all([
-        apiFetch<Staff>(`/stuffs/${staffId}`),
-        apiFetch<{ staff: Staff; year: number; monthRecords?: StaffMonthRecord[]; monthlyGrid?: StaffMonthRecord[]; payments: SalaryPayment[] }>(
-          `/stuffs/${staffId}/payroll?year=${selectedYear}`
-        )
+        apiFetch<any>(`/stuffs/${staffId}`),
+        apiFetch<any>(`/stuffs/${staffId}/payroll?year=${selectedYear}`)
       ]);
 
-      if (staffRes.success && staffRes.data) {
-        setStaff(staffRes.data);
+      const resolvedStaff = staffRes.data?.staff || staffRes.data;
+      if (staffRes.success && resolvedStaff && (resolvedStaff.name || resolvedStaff._id || resolvedStaff.id)) {
+        setStaff(resolvedStaff);
+      } else if (payrollRes.success && payrollRes.data?.staff) {
+        setStaff(payrollRes.data.staff);
       } else {
-        showToast('Staff member not found', 'error');
+        showToast('Staff member record not found', 'error');
       }
 
       if (payrollRes.success && payrollRes.data) {
@@ -152,6 +163,51 @@ export default function StaffProfilePage() {
     }
   };
 
+  // Confirm Mark Month as Unpaid
+  const handleConfirmUnpayMonth = async () => {
+    if (!unpayTarget || isUnpaying) return;
+    setIsUnpaying(true);
+    try {
+      const res = await apiFetch(`/stuffs/${staffId}/months/${unpayTarget.monthKey}`, {
+        method: 'DELETE'
+      });
+      if (res.success) {
+        showToast(`Month ${unpayTarget.monthTitle} marked as unpaid. Payments reverted.`, 'success');
+        setUnpayTarget(null);
+        loadData();
+      } else {
+        showToast(res.error || 'Failed to revert month payments', 'error');
+      }
+    } catch {
+      showToast('Network error reverting payments', 'error');
+    } finally {
+      setIsUnpaying(false);
+    }
+  };
+
+  // Confirm Delete Single Payment Slip
+  const handleConfirmDeletePayment = async () => {
+    if (!deletePaymentTarget || isDeletingPayment) return;
+    const pid = deletePaymentTarget.id || (deletePaymentTarget as any)._id;
+    setIsDeletingPayment(true);
+    try {
+      const res = await apiFetch(`/stuffs/${staffId}/payments/${pid}`, {
+        method: 'DELETE'
+      });
+      if (res.success) {
+        showToast(`Salary payment slip reverted successfully`, 'success');
+        setDeletePaymentTarget(null);
+        loadData();
+      } else {
+        showToast(res.error || 'Failed to revert salary payment', 'error');
+      }
+    } catch {
+      showToast('Network error reverting salary payment', 'error');
+    } finally {
+      setIsDeletingPayment(false);
+    }
+  };
+
   // Aggregated year metrics
   const totalYearExpected = monthRecords.reduce((acc, m) => acc + (m.expectedSalary || 0), 0);
   const totalYearPaid = monthRecords.reduce((acc, m) => acc + (m.paidAmount || 0), 0);
@@ -181,6 +237,8 @@ export default function StaffProfilePage() {
   }
 
   const roleDisplay = staff.clinicalRole || staff.role || 'Dental Professional';
+  const staffSalary = Number(staff.baseSalary ?? staff.monthlySalary ?? 0);
+  const isActive = Boolean(staff.active ?? (staff.status === 'active'));
 
   return (
     <DashboardLayout>
@@ -196,14 +254,14 @@ export default function StaffProfilePage() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
-                  {staff.name}
+                  {staff.name || 'Unnamed Staff Member'}
                 </h1>
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase ${
-                  Boolean(staff.active ?? (staff.status === 'active'))
+                  isActive
                     ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-700/50' 
                     : 'bg-zinc-900 text-zinc-400 border border-zinc-700'
                 }`}>
-                  {Boolean(staff.active ?? (staff.status === 'active')) ? 'Active' : 'Inactive'}
+                  {isActive ? 'Active' : 'Inactive'}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
@@ -236,7 +294,7 @@ export default function StaffProfilePage() {
               onClick={() => {
                 setPayMonth(new Date().toISOString().slice(0, 7));
                 setPayDate(new Date().toISOString().split('T')[0]);
-                setPayAmount(String(staff.baseSalary ?? staff.monthlySalary ?? 0));
+                setPayAmount(String(staffSalary));
                 setPayMethod('cash');
                 setPayAdmin('');
                 setPayReference('');
@@ -266,7 +324,7 @@ export default function StaffProfilePage() {
             <div className="space-y-1">
               <span className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">Monthly Base Rate</span>
               <p className="font-mono font-black text-red-400 text-base">
-                ৳{(staff.baseSalary ?? staff.monthlySalary ?? 0).toLocaleString('en-BD')}
+                ৳{staffSalary.toLocaleString('en-BD')}
               </p>
               <p className="text-gray-500 text-[10px]">Monthly agreed compensation</p>
             </div>
@@ -306,12 +364,13 @@ export default function StaffProfilePage() {
               const monthTitle = MONTH_NAMES[idx] || `Month ${monthNum}`;
               const isPaid = rec.status === 'paid';
               const isPartial = rec.status === 'partial';
+              const mKey = rec.monthKey || rec.month || `${selectedYear}-${String(monthNum).padStart(2, '0')}`;
 
               const dueAmt = rec.dueAmount ?? rec.remainingSalary ?? Math.max(0, rec.expectedSalary - rec.paidAmount);
 
               return (
                 <GlassCard 
-                  key={rec.month || rec.monthKey || idx} 
+                  key={mKey} 
                   className={`p-4 space-y-3 relative transition-all border ${
                     isPaid 
                       ? 'border-emerald-700/40 bg-emerald-950/10' 
@@ -350,7 +409,7 @@ export default function StaffProfilePage() {
                     </div>
                   </div>
 
-                  <div className="pt-2">
+                  <div className="pt-2 space-y-1.5">
                     <Button
                       variant={isPaid ? 'outline' : 'primary'}
                       size="sm"
@@ -359,6 +418,21 @@ export default function StaffProfilePage() {
                     >
                       {isPaid ? 'Record Extra Payout' : 'Pay Month'}
                     </Button>
+
+                    {/* Undo Payment / Mark as Unpaid button if any amount has been paid */}
+                    {rec.paidAmount > 0 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setUnpayTarget({ monthKey: mKey, monthTitle })}
+                        className="w-full text-[11px] h-6 text-red-400 hover:text-white hover:bg-red-950/40 font-medium flex items-center justify-center gap-1"
+                        title="Revert payments and mark as unpaid"
+                      >
+                        <RotateCcw className="w-3 h-3 text-red-400" />
+                        Undo / Mark as Unpaid
+                      </Button>
+                    )}
                   </div>
                 </GlassCard>
               );
@@ -388,6 +462,7 @@ export default function StaffProfilePage() {
                     <th className="pb-3">Reference / Slip</th>
                     <th className="pb-3 text-right">Amount</th>
                     <th className="pb-3">Notes</th>
+                    <th className="pb-3 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -412,6 +487,19 @@ export default function StaffProfilePage() {
                         </td>
                         <td className="py-3 text-gray-400 italic max-w-xs truncate">
                           {p.notes || '—'}
+                        </td>
+                        <td className="py-3 text-right">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeletePaymentTarget(p)}
+                            className="h-6 px-2 text-[10px] text-red-400 hover:text-white hover:bg-red-900/40 gap-1 font-semibold"
+                            title="Undo / Revert this salary payment"
+                          >
+                            <Trash2 className="w-3 h-3 text-red-400" />
+                            Undo
+                          </Button>
                         </td>
                       </tr>
                     );
@@ -456,7 +544,7 @@ export default function StaffProfilePage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-gray-300 font-semibold mb-1">Payroll Month *</label>
+              <label className="block text-gray-300 font-semibold mb-1">Payment Month (YYYY-MM)</label>
               <input
                 type="month"
                 value={payMonth}
@@ -467,7 +555,7 @@ export default function StaffProfilePage() {
             </div>
 
             <Input
-              label="Amount to Pay (৳) *"
+              label="Amount to Disburse (৳) *"
               type="number"
               min="1"
               value={payAmount}
@@ -486,8 +574,8 @@ export default function StaffProfilePage() {
             />
 
             <Input
-              label="Paid By / Admin"
-              placeholder="e.g. Admin / Cashier"
+              label="Disbursing Admin / Cashier"
+              placeholder="e.g. Admin / Reception"
               value={payAdmin}
               onChange={(e) => setPayAdmin(e.target.value)}
             />
@@ -514,8 +602,8 @@ export default function StaffProfilePage() {
           </div>
 
           <Input
-            label="Transaction Reference / Voucher #"
-            placeholder="e.g. SLIP-AUG-01 / TR-921"
+            label="Transaction Ref / Voucher No"
+            placeholder="e.g. SLIP-2026-08 or TXN-4912"
             value={payReference}
             onChange={(e) => setPayReference(e.target.value)}
           />
@@ -526,7 +614,7 @@ export default function StaffProfilePage() {
               rows={2}
               value={payNotes}
               onChange={(e) => setPayNotes(e.target.value)}
-              placeholder="Advance deductions, overtime, or payout notes..."
+              placeholder="Advance adjustments, performance bonus, or notes..."
               className="w-full glass-input rounded-xl p-2.5 text-xs text-gray-100 placeholder:text-gray-500 resize-none"
             />
           </div>
@@ -549,10 +637,112 @@ export default function StaffProfilePage() {
               className="gap-1.5"
             >
               <CreditCard className="w-3.5 h-3.5" />
-              Confirm Disbursement
+              Confirm Salary Payout
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Undo Payment / Mark Month Unpaid Modal */}
+      <Modal
+        isOpen={Boolean(unpayTarget)}
+        onClose={() => {
+          if (!isUnpaying) setUnpayTarget(null);
+        }}
+        title="Mark Month as Unpaid?"
+        description={`Revert and delete recorded salary payments for ${unpayTarget?.monthTitle}`}
+      >
+        <div className="space-y-4 text-xs">
+          <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-900/60 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+            <div className="space-y-1.5 flex-1">
+              <p className="text-sm font-semibold text-white">
+                Undo payments for {unpayTarget?.monthTitle}?
+              </p>
+              <p className="text-xs text-gray-300">
+                Staff Member: <span className="font-bold text-white">{staff?.name}</span>
+              </p>
+              <p className="text-[11px] text-gray-400">
+                This will remove all recorded salary payments for this month and reset the status back to <strong className="text-amber-300">UNPAID</strong>. Use this if salary was accidentally recorded for the wrong person or amount.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2.5 pt-2 border-t border-white/10">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isUnpaying}
+              onClick={() => setUnpayTarget(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              isLoading={isUnpaying}
+              disabled={isUnpaying}
+              onClick={handleConfirmUnpayMonth}
+              className="bg-amber-600 hover:bg-amber-700 text-white font-bold gap-1.5"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              {isUnpaying ? 'Reverting...' : 'Confirm Mark as Unpaid'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Single Payment Slip Modal */}
+      <Modal
+        isOpen={Boolean(deletePaymentTarget)}
+        onClose={() => {
+          if (!isDeletingPayment) setDeletePaymentTarget(null);
+        }}
+        title="Revert Salary Payment Slip?"
+        description="Permanently delete this payment transaction and restore ledger balance"
+      >
+        <div className="space-y-4 text-xs">
+          <div className="p-4 rounded-xl bg-red-950/40 border border-red-900/60 flex items-start gap-3">
+            <Trash2 className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+            <div className="space-y-1.5 flex-1">
+              <p className="text-sm font-semibold text-white">
+                Revert disbursement of ৳{deletePaymentTarget?.amount.toLocaleString('en-BD')}?
+              </p>
+              <p className="text-xs text-gray-300">
+                Month: <span className="font-bold text-white">{deletePaymentTarget?.monthKey}</span> | Staff: <span className="font-bold text-white">{staff?.name}</span>
+              </p>
+              <p className="text-[11px] text-gray-400">
+                This will delete this specific disbursement slip from the audit log and subtract ৳{deletePaymentTarget?.amount.toLocaleString('en-BD')} from the month&apos;s paid total.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2.5 pt-2 border-t border-white/10">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isDeletingPayment}
+              onClick={() => setDeletePaymentTarget(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              isLoading={isDeletingPayment}
+              disabled={isDeletingPayment}
+              onClick={handleConfirmDeletePayment}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold gap-1.5"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              {isDeletingPayment ? 'Reverting...' : 'Confirm Revert Payment'}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </DashboardLayout>
   );

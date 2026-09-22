@@ -58,7 +58,7 @@ export const Modal: React.FC<ModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className={`relative w-full ${maxWidthStyles[maxWidth]} glass-panel-glow rounded-2xl p-6 shadow-2xl z-10 my-8 overflow-hidden`}
+            className={`relative w-full ${maxWidthStyles[maxWidth]} glass-panel-glow rounded-2xl p-6 shadow-2xl z-10 my-8 overflow-visible`}
           >
             {/* Header */}
             <div className="flex items-start justify-between gap-4 mb-4">

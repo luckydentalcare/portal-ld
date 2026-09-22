@@ -437,7 +437,7 @@ export default function AppointmentsPage() {
               </Button>
 
               {/* Responsive Calendar Picker */}
-              <div className="w-40 sm:w-44">
+              <div className="relative inline-block w-40 sm:w-48 shrink-0">
                 <DatePicker
                   value={selectedDate}
                   onChange={(val) => {

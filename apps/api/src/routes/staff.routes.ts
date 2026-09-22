@@ -6,7 +6,9 @@ import {
   createStaff,
   updateStaff,
   deleteStaff,
-  recordSalaryPayment
+  recordSalaryPayment,
+  deleteSalaryPayment,
+  unpayMonth
 } from '../controllers/staff.controller';
 import { authenticateAdmin } from '../middleware/auth.middleware';
 
@@ -22,7 +24,18 @@ router.get('/:id/payroll', getStaffById);
 router.post('/', createStaff);
 router.put('/:id', updateStaff);
 router.delete('/:id', deleteStaff);
+
+// Salary payments and undo/revert actions
 router.post('/payments', recordSalaryPayment);
+router.post('/distribute-salary', recordSalaryPayment);
 router.post('/:id/payments', recordSalaryPayment);
+router.post('/:id/distribute-salary', recordSalaryPayment);
+
+// Revert/Undo payment endpoints
+router.delete('/payments/:paymentId', deleteSalaryPayment);
+router.delete('/:id/payments/:paymentId', deleteSalaryPayment);
+router.delete('/:id/months/:monthKey', unpayMonth);
+router.post('/:id/unpay', unpayMonth);
 
 export default router;
+

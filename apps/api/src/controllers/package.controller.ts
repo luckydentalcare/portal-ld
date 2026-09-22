@@ -118,3 +118,100 @@ export const createPackage = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const updatePackage = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name, category, price, description, durationDays, active } = req.body;
+
+    if (!id) {
+      return res.status(400).json({ success: false, message: 'Package ID is required' });
+    }
+
+    const updateFields: any = { updatedAt: new Date().toISOString() };
+    if (name !== undefined) updateFields.name = name.trim();
+    if (category !== undefined) updateFields.category = category.trim();
+    if (price !== undefined && !isNaN(Number(price))) updateFields.price = Number(price);
+    if (description !== undefined) updateFields.description = description ? description.trim() : '';
+    if (durationDays !== undefined) updateFields.durationDays = Number(durationDays);
+    if (active !== undefined) updateFields.active = Boolean(active);
+
+    const isDbConnected = getDatabaseStatus() === 'connected';
+    if (isDbConnected) {
+      const updated = await Package.findByIdAndUpdate(id, updateFields, { new: true }).lean();
+      if (updated) {
+        logger.info(`Package updated in MongoDB: ${(updated as any).name}`);
+        return res.status(200).json({
+          success: true,
+          message: 'Package updated successfully',
+          data: {
+            ...updated,
+            id: (updated as any)._id?.toString()
+          }
+        });
+      }
+    }
+
+    const nafijDb = getNafijDB();
+    if (nafijDb) {
+      try {
+        await nafijDb.collection<any>('packages').update(id, updateFields);
+      } catch (err) {
+        logger.warn('NafijDB updatePackage failed', { err });
+      }
+    }
+
+    const idx = inMemoryPackages.findIndex((p) => p.id === id || p._id === id);
+    if (idx !== -1) {
+      inMemoryPackages[idx] = { ...inMemoryPackages[idx], ...updateFields };
+      return res.status(200).json({
+        success: true,
+        message: 'Package updated successfully',
+        data: inMemoryPackages[idx]
+      });
+    }
+
+    return res.status(404).json({ success: false, message: 'Package not found' });
+  } catch (error: any) {
+    logger.error('Error updating package', { error });
+    return res.status(500).json({ success: false, message: error.message || 'Failed to update package' });
+  }
+};
+
+export const deletePackage = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ success: false, message: 'Package ID is required' });
+    }
+
+    const isDbConnected = getDatabaseStatus() === 'connected';
+    if (isDbConnected) {
+      await Package.findByIdAndDelete(id);
+      logger.info(`Package deleted from MongoDB: ${id}`);
+    }
+
+    const nafijDb = getNafijDB();
+    if (nafijDb) {
+      try {
+        await nafijDb.collection<any>('packages').delete(id);
+      } catch (err) {
+        logger.warn('NafijDB deletePackage error', { err });
+      }
+    }
+
+    const idx = inMemoryPackages.findIndex((p) => p.id === id || p._id === id);
+    if (idx !== -1) {
+      inMemoryPackages.splice(idx, 1);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Package deleted successfully'
+    });
+  } catch (error: any) {
+    logger.error('Error deleting package', { error });
+    return res.status(500).json({ success: false, message: error.message || 'Failed to delete package' });
+  }
+};
+
